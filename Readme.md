@@ -8,6 +8,14 @@ Faker Namespace | Function | alias(This is the fieldname you get in JSON record)
 
 "#" at the start will exclude the line.
 
+## Execution
+node index.js `<interval in ms between records> <listen port>`
+
+Below command generates one record each second and writes them to port 4000. `nc localhost 4000` will show the generated data
+```
+node index.js 1000  4000
+```
+
 Output is json formatted.
 ## Some Examples
 
