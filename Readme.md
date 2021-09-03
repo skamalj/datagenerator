@@ -6,6 +6,8 @@ Each entry in config file denotes the field in the record and the Faker function
 
 Faker Namespace | Function | alias(This is the fieldname you get in JSON record) | One or more Function arguments
 
+First two required fields are explained in readme of Faker project (link above)
+
 "#" at the start will exclude the line.
 
 ## Execution
