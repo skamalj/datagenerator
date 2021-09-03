@@ -1,8 +1,9 @@
 #datatype|number|id|{"min":0,"max":10}
 #datatype|float|value|{"min":20,"max":50}
-#name|firstName|firstName|1
-#name|lastName|lastName
-#internet|email|email
-#phone|phoneNumber|phone
-#date|past|joiningDate|5|01-01-2017
-lorem|words|textline|6
+datatype|number|id
+name|firstName|firstName|1
+name|lastName|lastName
+internet|email|email
+phone|phoneNumber|phone
+date|past|joiningDate|5|01-01-2017
+#lorem|words|textline|6
