@@ -4,12 +4,14 @@ This supports sending streaming fake data to:-
 * Socket
 * AWS Kinesis
 * Google Cloud PubSub
+* Azure Events Hub
 
 Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
 * It allows you to enable multiple sinks at the same time if you want.
 * Read sample.env for details
 * To enable PubSub, make sure you have set application default login `gcloud auth application-default login`
 * For AWS you should have default profile set or set AWS_PROFILE environment variable
+* For Azure use `az login` 
 
 
 Install the dependencies 

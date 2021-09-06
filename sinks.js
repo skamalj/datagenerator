@@ -1,5 +1,6 @@
 const { PubSub } = require('@google-cloud/pubsub');
 const { KinesisClient, PutRecordCommand } = require("@aws-sdk/client-kinesis");
+const { EventHubProducerClient } = require("@azure/event-hubs");
 
 let Sinks = {}
 
@@ -54,6 +55,32 @@ Sinks.kinesis = class kinesis {
         } catch (error) {
             console.log("Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
         }
+    }
+}
+
+Sinks.eventshub = class EventsHub {
+    #producer;
+    constructor() {
+        this.#producer = new EventHubProducerClient(process.env.EVENT_HUB_CONN_STRING, 
+            process.env.EVENT_HUB_NAME);
+    }
+    write(rec) {
+        this.#producer.createBatch()
+            .then((batch) => {
+                if (batch.tryAdd({ body: rec }))
+                    return this.#producer.sendBatch(batch)
+                else
+                    throw new Error("Record --" + rec + "-- not added to batch")
+            })
+            .then(() => {
+                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
+                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
+                    console.log("Message " + rec + " published to azure events hub");
+            })
+            .catch((error) => {
+                console.log("Record --" + rec + "-- not published to azure events hub: " + error);
+            })
+
     }
 }
 module.exports = { Sinks }

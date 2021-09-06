@@ -64,6 +64,16 @@ if (process.env.SINKS_KINESIS == "Y" || process.env.SINKS_KINESIS == "y") {
         }, parseInt(options.timeout)*60*1000);
 }
 
+// Create generator for Kinesis
+if (process.env.SINKS_EVENTS_HUB == "Y" || process.env.SINKS_EVENTS_HUB == "y") {
+    let eventshub = new Sinks.eventshub();
+    let intervalId = setInterval(genFakeRecord, interval, eventshub);
+    if (options.timeout)
+        setTimeout(() => {
+            clearInterval(intervalId)
+        }, parseInt(options.timeout)*60*1000);
+}
+
 // Parse config file and save record options on options array
 // Code taken from nodejs documentation "Readline module". 
 (async function processRecordOptions() {
