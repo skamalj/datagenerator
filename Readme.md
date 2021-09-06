@@ -1,6 +1,6 @@
 Data generator based on [faker nodejs library](https://github.com/Marak/faker.js)
 
-This supports sending fake data to:-
+This supports sending streaming fake data to:-
 * Socket
 * AWS Kinesis
 * Google Cloud PubSub
@@ -27,13 +27,17 @@ First two required fields are explained in readme of Faker project (link above)
 "#" at the start will exclude the line.
 
 ## Execution
-node index.js `<interval in ms between records>`
 
-Below command generates one record each second and writes them to port 4000 or PORT set in .env file. `nc localhost 4000` will show the generated data
+Below command generates one record each second for 1 min and writes them to port 4000 or PORT set in .env file. 
+`npm start -- -i 1000 -t 1`
+
+`nc localhost 4000` on separate terminal will show the generated data
+
+See help
 ```
-node index.js 1000
+node index.js -h
 or
-npm start 1000
+npm start -- -h
 ```
 Interval can be set in .env file as well. Commandline input(`optional`)  will overide this value.
 

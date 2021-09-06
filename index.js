@@ -4,25 +4,29 @@ const { once } = require('events');
 const { createReadStream } = require('fs');
 const { createInterface } = require('readline');
 const { Sinks } = require('./sinks.js');
+const { program } = require('./argparser.js');
 
 // Load generator environment. 
 // Read here - https://github.com/motdotla/dotenv
-result = require('dotenv').config()
+require('dotenv').config()
 
+// Read commandline arguments
+const options = program.parse(process.argv).opts()
+console.log(options)
 
 // Store for record options defined in config
 var optionsMap = [];
-var interval = parseInt(process.argv[2]) || process.env.INTERVAL || 1000
+var interval = parseInt(options.interval) || process.env.INTERVAL || 1000
 
 // Goes through options and generates a record based on faker functions
 // Then writes the record to the socket
-genFakeRecord = function (socket) {
+genFakeRecord = function (sink) {
     try {
         record = {};
         for (option of optionsMap) {
             record[option[2]] = faker[option[0]][option[1]].apply(null, createArgsArray(option.slice(3)));
         }
-        socket.write(JSON.stringify(record) + "\n");
+        sink.write(JSON.stringify(record) + "\n");
     } catch (error) {
         console.log("Exception when writing record to client:" + error)
     }
@@ -40,14 +44,24 @@ createArgsArray = function (args) {
     return parsedArgs;
 }
 
+// Create generator for pubsub
 if (process.env.SINKS_PUBSUB == "Y" || process.env.SINKS_PUBSUB == "y") {
     let pubsub = new Sinks.pubsub();
-    setInterval(genFakeRecord, interval, pubsub);
+    let intervalId = setInterval(genFakeRecord, interval, pubsub);
+    if (options.timeout)
+        setTimeout(() => {
+            clearInterval(intervalId)
+        }, parseInt(options.timeout)*60*1000);
 }
 
+// Create generator for Kinesis
 if (process.env.SINKS_KINESIS == "Y" || process.env.SINKS_KINESIS == "y") {
     let kinesis = new Sinks.kinesis();
-    setInterval(genFakeRecord, interval, kinesis);
+    let intervalId = setInterval(genFakeRecord, interval, kinesis);
+    if (options.timeout)
+        setTimeout(() => {
+            clearInterval(intervalId)
+        }, parseInt(options.timeout)*60*1000);
 }
 
 // Parse config file and save record options on options array
@@ -77,7 +91,6 @@ if (process.env.SINKS_KINESIS == "Y" || process.env.SINKS_KINESIS == "y") {
 // Create TCP server
 const server = net.createServer({ allowHalfOpen: true }, (c) => {
     socketAddress = c.address();
-
     console.log('client connected');
     c.on('end', () => {
         console.log('client disconnected');
@@ -88,9 +101,14 @@ const server = net.createServer({ allowHalfOpen: true }, (c) => {
     });
     // On connection, attach fake record generator to the client. 
     // Interval must be passed on command line.
-    console.log(interval)
-    if (process.env.SINKS_CONSOLE == "Y" || process.env.SINKS_CONSOLE == "y")
-        setInterval(genFakeRecord, interval, c);
+    if (process.env.SINKS_CONSOLE == "Y" || process.env.SINKS_CONSOLE == "y") {
+        let intervalId = setInterval(genFakeRecord, interval, c);
+        if (options.timeout)
+            setTimeout(() => {
+                clearInterval(intervalId)
+                c.destroy()
+            }, parseInt(options.timeout)*60*1000);
+    }
 });
 
 server.on('error', (err) => {
