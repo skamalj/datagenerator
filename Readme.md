@@ -1,6 +1,22 @@
 Data generator based on [faker nodejs library](https://github.com/Marak/faker.js)
 
-Install the dependencies and then update config file. 
+This supports sending fake data to:-
+* Socket
+* AWS Kinesis
+* Google Cloud PubSub
+
+Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
+* It allows you to enable multiple sinks at the same time if you want.
+* Read sample.env for details
+* To enable PubSub, make sure you have set application default login `gcloud auth application-default login`
+* For AWS you should have default profile set or set AWS_PROFILE environment variable
+
+
+Install the dependencies 
+>`npm install`
+
+## Record Configuration
+Record configuration is in `config` file.
 
 Each entry in config file denotes the field in the record and the Faker functions which needs to be called. Its format is as below:-
 
@@ -11,12 +27,15 @@ First two required fields are explained in readme of Faker project (link above)
 "#" at the start will exclude the line.
 
 ## Execution
-node index.js `<interval in ms between records> <listen port>`
+node index.js `<interval in ms between records>`
 
-Below command generates one record each second and writes them to port 4000. `nc localhost 4000` will show the generated data
+Below command generates one record each second and writes them to port 4000 or PORT set in .env file. `nc localhost 4000` will show the generated data
 ```
-node index.js 1000  4000
+node index.js 1000
+or
+npm start 1000
 ```
+Interval can be set in .env file as well. Commandline input(`optional`)  will overide this value.
 
 Output is json formatted.
 ## Some Examples
