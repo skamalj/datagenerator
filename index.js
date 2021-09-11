@@ -26,10 +26,19 @@ genFakeRecord = function (sink) {
         for (option of optionsMap) {
             record[option[2]] = faker[option[0]][option[1]].apply(null, createArgsArray(option.slice(3)));
         }
+        if (!options.noeventtime)
+            record["eventtime"] = Date.now();
+        if (options.csv) record = convertToCSV(record)       
         sink.write(JSON.stringify(record) + "\n");
     } catch (error) {
         console.log("Exception when writing record to client:" + error)
     }
+}
+
+convertToCSV= function (record) {
+    csvRec = ""
+    Object.values(record).forEach(v => csvRec=csvRec+","+v)
+    return csvRec.substring(1);
 }
 
 // Parse string arguments back to JSON where possible, else return the args as is
@@ -51,7 +60,7 @@ if (process.env.SINKS_PUBSUB == "Y" || process.env.SINKS_PUBSUB == "y") {
     if (options.timeout)
         setTimeout(() => {
             clearInterval(intervalId)
-        }, parseInt(options.timeout)*60*1000);
+        }, parseInt(options.timeout) * 60 * 1000);
 }
 
 // Create generator for Kinesis
@@ -61,17 +70,17 @@ if (process.env.SINKS_KINESIS == "Y" || process.env.SINKS_KINESIS == "y") {
     if (options.timeout)
         setTimeout(() => {
             clearInterval(intervalId)
-        }, parseInt(options.timeout)*60*1000);
+        }, parseInt(options.timeout) * 60 * 1000);
 }
 
-// Create generator for Kinesis
+// Create generator for Events Hub
 if (process.env.SINKS_EVENTS_HUB == "Y" || process.env.SINKS_EVENTS_HUB == "y") {
     let eventshub = new Sinks.eventshub();
     let intervalId = setInterval(genFakeRecord, interval, eventshub);
     if (options.timeout)
         setTimeout(() => {
             clearInterval(intervalId)
-        }, parseInt(options.timeout)*60*1000);
+        }, parseInt(options.timeout) * 60 * 1000);
 }
 
 // Parse config file and save record options on options array
@@ -117,7 +126,7 @@ const server = net.createServer({ allowHalfOpen: true }, (c) => {
             setTimeout(() => {
                 clearInterval(intervalId)
                 c.destroy()
-            }, parseInt(options.timeout)*60*1000);
+            }, parseInt(options.timeout) * 60 * 1000);
     }
 });
 
@@ -126,6 +135,6 @@ server.on('error', (err) => {
 });
 
 // Use the port from arguments or use default
-server.listen(process.env.PORT || 4000, () => {
+server.listen(options.port || process.env.PORT || 4000, () => {
     console.log('server bound');
 });

@@ -40,11 +40,35 @@ See help
 node index.js -h
 or
 npm start -- -h
+
+Options:
+  -i, --interval <interval>  Interval in milliseconds between records
+  -t, --timeout <timeout>    Timeout in minutes for generator
+  -n, --noeventtime          Flag to disable adding event time to records
+  -p, --port <port>          Specify port for tcp server, default is 4000
+  -c, --csv                  Create csv formatted records
+  -h, --help                 display help for command
+
 ```
-Interval can be set in .env file as well. Commandline input(`optional`)  will overide this value.
+Interval and port  can be set in .env file as well. Commandline input(`optional`)  will overide this value.
 
 Output is json formatted.
 ## Some Examples
+
+### Output with eventtime
+Config to generate sale records for Y number of items for X number of users
+```
+datatype|number|user|{"min":1,"max":3}
+helpers|randomize|item|["itemA","itemB","itemC"]
+datatype|number|quantity|{"min":-10,"max":10}
+```
+```
+{"user":3,"item":"itemC","quantity":7,"eventtime":1631377288497}
+{"user":2,"item":"itemA","quantity":4,"eventtime":1631377290499}
+{"user":1,"item":"itemC","quantity":10,"eventtime":1631377292499}
+{"user":3,"item":"itemC","quantity":-5,"eventtime":1631377294502}
+{"user":3,"item":"itemC","quantity":-2,"eventtime":1631377296504}
+```
 
 Below config generates temperature sensor data for 10 sensors
 ```
