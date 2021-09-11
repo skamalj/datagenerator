@@ -94,8 +94,8 @@ if (process.env.SINKS_EVENTS_HUB == "Y" || process.env.SINKS_EVENTS_HUB == "y") 
 
         rl.on('line', (line) => {
             if (!line.startsWith("#")) {
-                option = line.split("|");
-                optionsMap.push(option);
+                option = line.trim().split("|");
+                if (option && option != "") optionsMap.push(option);
             }
         });
 
