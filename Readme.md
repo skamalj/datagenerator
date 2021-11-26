@@ -18,7 +18,7 @@ Install the dependencies
 >`npm install`
 
 ## Record Configuration
-Record configuration is in `config` file and uses YAML format.
+Record configuration is in schema file and uses YAML format. Default is schema/config.yaml.
 
 Each entry in config file denotes the field in the record and the Faker functions which needs to be called. Its format is as below:-
 ```
@@ -83,12 +83,13 @@ or
 npm start -- -h
 
 Options:
-  -i, --interval <interval>  Interval in milliseconds between records
-  -t, --timeout <timeout>    Timeout in minutes for generator
-  -n, --noeventtime          Flag to disable adding event time to records
-  -p, --port <port>          Specify port for tcp server, default is 4000
-  -c, --csv                  Create csv formatted records
-  -h, --help                 display help for command
+  -i, --interval <interval>       Interval in milliseconds between records
+  -t, --timeout <timeout>         Timeout in minutes for generator
+  -n, --noeventtime               Flag to disable adding event time to records
+  -p, --port <port>               Specify port for tcp server, default is 4000
+  -c, --csv                       Create csv formatted records
+  -h, --help                      display help for command
+  -s, --schemafile <schemafile>   Schemafile for record generation
 
 ```
 Interval and port  can be set in .env file as well. Commandline input(`optional`)  will overide this value.
@@ -212,7 +213,7 @@ records:
 {"textline":"magnam nisi quis hic dignissimos non"}
 ```
 ### Example5 - Master with Ref
-Create random text with 6 words on each line separated by single space 
+Geneate transaction data for 10 customers across 10 products
 > ![config.yaml](schema/config.yaml)
 
 ### Sample Output

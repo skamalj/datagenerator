@@ -75,7 +75,7 @@ class Generator {
         //The maximum is exclusive and the minimum is inclusive
         return Math.floor(Math.random() * (max - min)) + min;
     }
-
+    // Load record config from provided schema file or from default schema file
     loadRecordConfig() {
         let schemafile = this.options.schemafile ? this.options.schemafile : "./schema/config.yaml";
         try {
@@ -95,7 +95,7 @@ class Generator {
         }
     }
 
-    // Generate reference records
+    // Generate reference records and store in memory sink
     generateRefRecords() {
         console.log("Generating reference records");
         for (let record in this.recordSchemas) {
