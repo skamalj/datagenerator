@@ -18,15 +18,56 @@ Install the dependencies
 >`npm install`
 
 ## Record Configuration
-Record configuration is in `config` file.
+Record configuration is in `config` file and uses YAML format.
 
 Each entry in config file denotes the field in the record and the Faker functions which needs to be called. Its format is as below:-
+```
+records:
+  - type: <Master>
+    schema:
+      - name: < This is field name >
+        namespace: <faker namespace to which this function belongs >
+        function: <faker function>
+        args: [<arguments to be passed to faker funtion enclosed in array>]
+        anomaly:  <introduces anomaly in the data, see example 2>
+          magnitude: <Multiplier for the data>
+          frequency: <%age of samles in which to introduce anomaly>
+```
+### Using reference records
 
-Faker Namespace | Function | alias(This is the fieldname you get in JSON record) | One or more Function arguments
+If you need to generate data against fixed set of master records Ex. across 'X' number of customers 
+, buying 'Y' number of products in some quantities.  In this case 'Ref' records can be used for customers and Products, which can then be used to generate master transactions/records.
 
-First two required fields are explained in readme of Faker project (link above)
+Below configuration generates around 12 customer records.   As 'cust_id' is marked as unique, duplicates records will be discarded, giving you less records than 'count'.
+```
+records:
+  - type: Ref
+    name: customer
+    count: 12
+    schema:
+      - name: cust_id
+        namespace: datatype
+        unique: true
+        function: number
+        args: [{"min":0,"max":10}]
+      - name: firstname
+        namespace: name
+        function: firstName
+        args: [1]
+      - name: lastname
+        namespace: name
+        function: lastName
+```
+### Using Ref records in Master
+In this case specify namespace as "ref" and fucntion as the name of Ref record. This will pick single record at random from the generated records and insert into master record.
 
-"#" at the start will exclude the line.
+```
+  - type: Master
+    schema:
+      - name: customer
+        namespace: ref
+        function: customer
+```
 
 ## Execution
 
@@ -55,10 +96,10 @@ Interval and port  can be set in .env file as well. Commandline input(`optional`
 Output is json formatted.
 ## Some Examples
 
-### Output with eventtime
+### Example1 - Master Only
 Config to generate sale records for Y number of items for X number of users
 
->example1.yaml
+> ![example1.yaml](schema/example1.yaml)
 ```
 records:
   - type: Master
@@ -76,8 +117,7 @@ records:
         function: number
         args: [{"min":-10,"max":10}]
 ```
-
-
+### Sample Output
 ```
 {"user":3,"item":"itemC","quantity":7,"eventtime":1631377288497}
 {"user":2,"item":"itemA","quantity":4,"eventtime":1631377290499}
@@ -86,9 +126,26 @@ records:
 {"user":3,"item":"itemC","quantity":-2,"eventtime":1631377296504}
 ```
 
+### Example2 - Master with anomaly
 Below config generates temperature sensor data for 10 sensors
 
 > ![example2.yaml](schema/example2.yaml)
+```
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+        args: [{"min":0,"max":10}]
+      - name: temp
+        namespace: datatype
+        function: float
+        args: [{"min":20,"max":50}]
+        anomaly:
+          magnitude: 5
+          frequency: 20        
+```
 
 ### Sample output
 ```
@@ -97,14 +154,36 @@ Below config generates temperature sensor data for 10 sensors
 {"id":3,"value":39.57}
 {"id":4,"value":29.81}
 ```
+
+### Example3 - Master, multiple functions including date
 Create employee data. Since this is random, it cannot gurantee duplicates or that employee will not have two joining dates.
+
+> ![example3.yaml](schema/example3.yaml)
+
 ```
-datatype|number|id
-name|firstName|firstName
-name|lastName|lastName
-internet|email|email
-phone|phoneNumber|phone
-date|past|joiningDate|5|01-01-2017
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+      - name: firstname
+        namespace: name
+        function: firstName
+        args: [1]
+      - name: lastname
+        namespace: name
+        function: lastName
+      - name: email
+        namespace: internet
+        function: email        
+      - name: phone
+        namespace: phone
+        function: phoneNumber
+      - name: joiningDate
+        namespace: date
+        function: past
+        args: ["5","01-01-2017"]
 ```
 ### Sample output 
 ```
@@ -112,9 +191,18 @@ date|past|joiningDate|5|01-01-2017
 {"id":53727,"firstName":"Kristin","lastName":"Baumbach","email":"Nolan.Bernier@hotmail.com","phone":"786-594-4418 x7232","joiningDate":"2012-03-29T03:20:47.244Z"}
 {"id":76041,"firstName":"Krystal","lastName":"Sawayn","email":"Jaleel79@hotmail.com","phone":"(520) 411-6918 x52633","joiningDate":"2012-06-19T06:58:01.561Z"}
 ```
+
+### Example4 - Master for text generation
 Create random text with 6 words on each line separated by single space 
+> ![example4.yaml](schema/example4.yaml)
 ```
-lorem|words|textline|6
+records:
+  - type: Master
+    schema:
+      - name: textline
+        namespace: lorem
+        function: words
+        args: [6]
 ```
 ### Sample Output
 ```
@@ -122,4 +210,16 @@ lorem|words|textline|6
 {"textline":"fuga molestiae est soluta porro molestias"}
 {"textline":"laborum aliquam dolore unde placeat cum"}
 {"textline":"magnam nisi quis hic dignissimos non"}
+```
+### Example5 - Master with Ref
+Create random text with 6 words on each line separated by single space 
+> ![config.yaml](schema/config.yaml)
+
+### Sample Output
+```
+{"customer":{"cust_id":9,"firstname":"Flora","lastname":"Kuhn"},"product":{"product_name":"Fantastic Metal Shirt","price":"985.00"},"quantity":40,"eventtime":1637908941015}
+{"customer":{"cust_id":3,"firstname":"Leslie","lastname":"Franecki"},"product":{"product_name":"Fantastic Plastic Table","price":"640.00"},"quantity":38,"eventtime":1637908942016}
+{"customer":{"cust_id":9,"firstname":"Flora","lastname":"Kuhn"},"product":{"product_name":"Fantastic Plastic Table","price":"640.00"},"quantity":45,"eventtime":1637908943018}
+{"customer":{"cust_id":9,"firstname":"Flora","lastname":"Kuhn"},"product":{"product_name":"Tasty Fresh Bike","price":"246.00"},"quantity":29,"eventtime":1637908944019}
+{"customer":{"cust_id":10,"firstname":"Erma","lastname":"Steuber"},"product":{"product_name":"Sleek Frozen Tuna","price":"210.00"},"quantity":39,"eventtime":1637908945021}
 ```

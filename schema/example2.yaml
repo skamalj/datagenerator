@@ -9,3 +9,6 @@ records:
         namespace: datatype
         function: float
         args: [{"min":20,"max":50}]
+        anomaly:
+          magnitude: 5
+          frequency: 20

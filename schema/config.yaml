@@ -15,19 +15,26 @@ records:
       - name: lastname
         namespace: name
         function: lastName
+  - type: Ref
+    name: product
+    count: 10
+    schema:
+      - name: product_name
+        namespace: commerce
+        unique: true
+        function: productName
+      - name: price
+        namespace: commerce
+        function: price       
   - type: Master
     schema:
-      - name: id
-        namespace: datatype
-        function: number
-        args: [{"min":0,"max":10}]
-      - name: temp
-        namespace: datatype
-        function: float
-        args: [{"min":20,"max":50}]
-        anomaly:
-          magnitude: 5
-          frequency: 50
       - name: customer
         namespace: ref
         function: customer
+      - name: product
+        namespace: ref
+        function: product
+      - name: quantity
+        namespace: datatype
+        function: number
+        args: [{"min":20,"max":50}]

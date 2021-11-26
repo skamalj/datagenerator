@@ -1,0 +1,7 @@
+records:
+  - type: Master
+    schema:
+      - name: textline
+        namespace: lorem
+        function: words
+        args: [6]
