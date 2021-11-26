@@ -58,7 +58,24 @@ Output is json formatted.
 ### Output with eventtime
 Config to generate sale records for Y number of items for X number of users
 
-> ![example1.yaml](schema/example1.yaml)
+>example1.yaml
+```
+records:
+  - type: Master
+    schema:
+      - name: user
+        namespace: datatype
+        function: number
+        args: [{"min":0,"max":3}]
+      - name: item
+        namespace: helpers
+        function: randomize
+        args: [["itemA","itemB","itemC"]]
+      - name: quantity
+        namespace: datatype
+        function: number
+        args: [{"min":-10,"max":10}]
+```
 
 
 ```
@@ -70,10 +87,9 @@ Config to generate sale records for Y number of items for X number of users
 ```
 
 Below config generates temperature sensor data for 10 sensors
-```
-datatype|number|id|{"min":0,"max":10}
-datatype|float|temp|{"min":20,"max":50}
-```
+
+> ![example2.yaml](schema/example2.yaml)
+
 ### Sample output
 ```
 {"id":2,"value":32.15}
