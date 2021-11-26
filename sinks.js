@@ -39,8 +39,8 @@ Sinks.kinesis = class kinesis {
         try {
             let [partkey] = Object.keys(rec);
             var params = {
-                Data: Buffer.from(rec),
-                PartitionKey: rec[partkey],
+                Data: Buffer.from(JSON.stringify(rec)),
+                PartitionKey: (rec[partkey]).toString(),
                 StreamName: this.#streamname
             };
             const command = new PutRecordCommand(params);
@@ -81,6 +81,35 @@ Sinks.eventshub = class EventsHub {
                 console.log("Record --" + rec + "-- not published to azure events hub: " + error);
             })
 
+    }
+}
+// In memory sink for storing REF records
+Sinks.memory = class memory {
+    #mem;
+    constructor() {
+        this.#mem = []
+    }
+    write(rec) {
+        this.#mem.push(rec)
+    }
+    get(i) {
+        return this.#mem[i]
+    }
+    length() {
+        return this.#mem.length
+    }
+    checkIfColValueExists(colName, colValue) {
+        return this.#mem.filter(rec => rec[colName] == colValue).length > 0
+    }
+}
+//Console sink for testing
+Sinks.console = class console {
+    #con;
+    constructor(con) {
+        this.#con = con
+    }
+    write(rec) {
+        this.#con.write(JSON.stringify(rec) + "\n");
     }
 }
 module.exports = { Sinks }

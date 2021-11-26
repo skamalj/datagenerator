@@ -7,5 +7,6 @@ program
   .option('-n, --noeventtime', 'Flag to disable adding event time to records')
   .option('-p, --port <port>', 'Specify port for tcp server, default is 4000')
   .option('-c, --csv', 'Create csv formatted records')
+  .option('-s, --schemafile <schemafile>', 'Specify schema config file, default is *schema/config*')
 
   module.exports = { program }

@@ -1,0 +1,23 @@
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+      - name: firstname
+        namespace: name
+        function: firstName
+        args: [1]
+      - name: lastname
+        namespace: name
+        function: lastName
+      - name: email
+        namespace: internet
+        function: email        
+      - name: phone
+        namespace: phone
+        function: phoneNumber
+      - name: joiningDate
+        namespace: date
+        function: past
+        args: ["5","01-01-2017"]

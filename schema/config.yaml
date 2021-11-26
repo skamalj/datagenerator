@@ -1,0 +1,33 @@
+records:
+  - type: Ref
+    name: customer
+    count: 12
+    schema:
+      - name: cust_id
+        namespace: datatype
+        unique: true
+        function: number
+        args: [{"min":0,"max":10}]
+      - name: firstname
+        namespace: name
+        function: firstName
+        args: [1]
+      - name: lastname
+        namespace: name
+        function: lastName
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+        args: [{"min":0,"max":10}]
+      - name: temp
+        namespace: datatype
+        function: float
+        args: [{"min":20,"max":50}]
+        anomaly:
+          magnitude: 5
+          frequency: 50
+      - name: customer
+        namespace: ref
+        function: customer

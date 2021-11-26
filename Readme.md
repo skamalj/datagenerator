@@ -57,11 +57,10 @@ Output is json formatted.
 
 ### Output with eventtime
 Config to generate sale records for Y number of items for X number of users
-```
-datatype|number|user|{"min":1,"max":3}
-helpers|randomize|item|["itemA","itemB","itemC"]
-datatype|number|quantity|{"min":-10,"max":10}
-```
+
+> ![example1.yaml](schema/example1.yaml)
+
+
 ```
 {"user":3,"item":"itemC","quantity":7,"eventtime":1631377288497}
 {"user":2,"item":"itemA","quantity":4,"eventtime":1631377290499}

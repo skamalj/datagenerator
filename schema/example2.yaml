@@ -1,0 +1,11 @@
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+        args: [{"min":0,"max":10}]
+      - name: temp
+        namespace: datatype
+        function: float
+        args: [{"min":20,"max":50}]
