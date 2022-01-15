@@ -75,7 +75,7 @@ If you need to send data for 10 devices at regular interval, you cannot do that 
 * Master record is generated for that device
 * Repeat, now notivce that since device selection is random, same device can be picked up for generating record or any other
 
-No if you define devices as sources, data is generated in following way:-
+Now if you define devices as sources, data is generated in following way:-
 * Multiple generator are created onme for each source with the set interval (say 5 secs)
 * At each interval you will get data records for each source/device
 
