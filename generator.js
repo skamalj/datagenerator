@@ -7,11 +7,18 @@ class Generator {
     refRecords = {};
     recordSchemas = {};
     options;
+    source;
 
-    constructor(options) {
+    constructor(options, refRecords = null, recordSchemas = null, source = null) {
         this.options = options;
-        this.loadRecordConfig();
-        this.generateRefRecords();
+        this.source = source;
+        if (recordSchemas && refRecords) {
+            this.recordSchemas = recordSchemas
+            this.refRecords = refRecords;
+        } else {
+            this.loadRecordConfig();
+            this.generateRefRecords();
+        }
     }
 
     // Goes through options and generates a record based on faker functions
@@ -40,6 +47,8 @@ class Generator {
             if (schema == "Master") {
                 if (!this.options.noeventtime)
                     record["eventtime"] = Date.now();
+                if (this.source)
+                    record["source"] = this.source;
                 if (this.options.csv) record = this.convertToCSV(record)
             }
             if (!discardRecord) sinks.map(s => s.write(record))
@@ -85,6 +94,8 @@ class Generator {
             for (const config of configdata.records) {
                 if (config.hasOwnProperty("type") && config.type == "Ref") {
                     this.recordSchemas[config.name] = config;
+                } else if (config.hasOwnProperty("type") && config.type == "Source") {
+                    this.recordSchemas["Source"] = config;
                 } else {
                     this.recordSchemas["Master"] = config;
                 }
@@ -102,9 +113,9 @@ class Generator {
             if (record != "Master") {
                 this.refRecords[record] = new Sinks.memory();
                 for (let i = 0; i < this.recordSchemas[record].count; i++) {
-                    this.genFakeRecord([ this.refRecords[record] ], record);
+                    this.genFakeRecord([this.refRecords[record]], record);
                 }
-                console.log(this.refRecords[record].length()+" records generated for "+record);
+                console.log(this.refRecords[record].length() + " records generated for " + record);
             }
         }
     }

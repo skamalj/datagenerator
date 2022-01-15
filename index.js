@@ -1,9 +1,8 @@
 const net = require('net');
 const { Sinks } = require('./sinks.js');
+const { Source } = require('./source.js');
 const { program } = require('./argparser.js');
 const { Generator } = require('./generator.js');
-
-
 
 // Load generator environment. 
 // Read here - https://github.com/motdotla/dotenv
@@ -13,10 +12,13 @@ require('dotenv').config()
 const options = program.parse(process.argv).opts()
 console.log(options)
 
-const generator = new Generator(options);
+// Multiple generator instances are created to simulate multiple sources.
+// Only one generator instance is created to load reference records
+// This genearator instance is then used to pass reference data to other data generatorss
+// whose number depends upon the number of sources configured.
+const refDataGenerator = new Generator(options);
 
 // Store for record options defined in config
-var interval = parseInt(options.interval) || process.env.INTERVAL || 1000
 var enabledSinks = [];
 
 
@@ -36,15 +38,10 @@ if (process.env.SINKS_EVENTS_HUB == "Y" || process.env.SINKS_EVENTS_HUB == "y") 
     enabledSinks.push(eventshub);
 }
 
-// Anonymous function is used to avoid scope issues with *this*
-let intervalId = setInterval(() => generator.genFakeRecord(enabledSinks,"Master"), interval);
-if (options.timeout)
-    setTimeout(() => {
-        clearInterval(intervalId)
-    }, parseInt(options.timeout) * 60 * 1000);
+// Create generators for sources 
+const sources = new Source(options, enabledSinks, refDataGenerator);
 
-
-// Create TCP server
+// Create data server for console sink
 const server = net.createServer({ allowHalfOpen: true }, (c) => {
     let socketAddress = c.address();
     let consoleSink = new Sinks.console(c);
@@ -66,7 +63,55 @@ server.on('error', (err) => {
     throw err;
 });
 
-// Use the port from arguments or use default
+// Create Management server
+// This can be used to add/remove sources and sinks(ToDo)
+const management_server = net.createServer({ allowHalfOpen: true }, (c) => {
+    c.on('end', () => {
+        console.log('Management client disconnected');
+    });
+    c.on('error', (err) => {
+        console.log("Management Server: " + err);
+    });
+    c.on('data', (cmd) => {
+        console.log("Management Server Recieved Commmand: " + cmd);
+        let words = cmd.toString().split(" ").filter(Boolean);
+        switch (words[0] ? words[0].trim() : "") {
+            case "source":
+                switch (words[1] ? words[1].trim() : "") {
+                    case "start":
+                        sources.startSource(parseInt(words[2]));
+                        break;
+                    case "stop":
+                        sources.stopSource(parseInt(words[2]));
+                        break;
+                    case "count":
+                        c.write(sources.getRunningSources());
+                        break;
+                    default:
+                        c.write("Usage : source start|stop|count <source number>. Recieved argument: " + words[1]);
+                        break;
+                }
+                break;
+            case "exit":
+                c.destroy();
+                break;
+            default:
+                c.write("Usage : source start|stop|count <source number>. Unknown command: " + words[0]);
+                break;
+        }
+
+    });
+});
+management_server.on('error', (err) => {
+    throw err;
+});
+
+// Data Server: Use the port from arguments or use default
 server.listen(options.port || process.env.PORT || 4000, () => {
     console.log('server bound');
+});
+
+// Management Server: Use the port from arguments or use default
+management_server.listen(options.management_port || process.env.MGMT_PORT || 4001, () => {
+    console.log('Management server bound');
 });

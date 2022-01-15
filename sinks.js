@@ -61,7 +61,7 @@ Sinks.kinesis = class kinesis {
 Sinks.eventshub = class EventsHub {
     #producer;
     constructor() {
-        this.#producer = new EventHubProducerClient(process.env.EVENT_HUB_CONN_STRING, 
+        this.#producer = new EventHubProducerClient(process.env.EVENT_HUB_CONN_STRING,
             process.env.EVENT_HUB_NAME);
     }
     write(rec) {
@@ -86,6 +86,7 @@ Sinks.eventshub = class EventsHub {
 // In memory sink for storing REF records
 Sinks.memory = class memory {
     #mem;
+    #removed_recs = []
     constructor() {
         this.#mem = []
     }
@@ -94,6 +95,11 @@ Sinks.memory = class memory {
     }
     get(i) {
         return this.#mem[i]
+    }
+    remove(i) {
+        let rec = this.#mem.splice(i, 1);
+        this.#removed_recs.push(rec);
+        console.log(`Removed record:  + ${JSON.stringify(rec)}, sink has now ${this.#mem.length} records`);
     }
     length() {
         return this.#mem.length

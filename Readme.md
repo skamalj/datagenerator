@@ -69,6 +69,62 @@ In this case specify namespace as "ref" and fucntion as the name of Ref record. 
         function: customer
 ```
 
+## Source type records
+If you need to send data for 10 devices at regular interval, you cannot do that with master/ref records.  If you configure 10 devices using and generate record using master, then following happens
+* one device is selected at random from 10 devices
+* Master record is generated for that device
+* Repeat, now notivce that since device selection is random, same device can be picked up for generating record or any other
+
+No if you define devices as sources, data is generated in following way:-
+* Multiple generator are created onme for each source with the set interval (say 5 secs)
+* At each interval you will get data records for each source/device
+
+Caution:  If you are planning on large number of sources, then keep you interval large as well else you will overwhelm  your system
+
+In below sample 10 records are generated every 'X' interval for each source.
+```
+records:
+  - type: Source
+    count: 10
+    failure_simulation:
+      probability: 10
+      min_source_recs: 5
+    schema:
+      - name: device_id
+        namespace: datatype
+        unique: true
+        function: number
+        args: [{"min":1000,"max":9999}]
+      - name: factory_id
+        namespace: datatype
+        function: number
+        args: [{"min":1,"max":5}]
+      - name: section
+        namespace: helpers
+        function: randomize
+        args: [["A","B","C","D","E","F"]]
+      - name: sensor_type
+        namespace: helpers
+        function: randomize
+        args: [["Temp","Vibration","Pressure","Proximity","Smoke","Level"]]
+  - type: Master
+    schema:
+      - name: value
+        namespace: datatype
+        function: number
+        args: [{"min":20,"max":50}]
+```
+### Sample Records for above config
+```
+{"value":28,"eventtime":1642228409846,"source":{"device_id":2746,"factory_id":5,"section":"B","sensor_type":"Proximity"}}
+{"value":32,"eventtime":1642228409846,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
+{"value":45,"eventtime":1642228409846,"source":{"device_id":8736,"factory_id":4,"section":"A","sensor_type":"Temp"}}
+{"value":36,"eventtime":1642228439853,"source":{"device_id":8595,"factory_id":1,"section":"F","sensor_type":"Smoke"}}
+{"value":48,"eventtime":1642228439854,"source":{"device_id":7586,"factory_id":4,"section":"D","sensor_type":"Proximity"}}
+{"value":42,"eventtime":1642228439854,"source":{"device_id":2746,"factory_id":5,"section":"B","sensor_type":"Proximity"}}
+{"value":27,"eventtime":1642228439854,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
+{"value":29,"eventtime":1642228439854,"source":{"device_id":8736,"factory_id":4,"section":"A","sensor_type":"Temp"}}
+```
 ## Execution
 
 Below command generates one record each second for 1 min and writes them to port 4000 or PORT set in .env file. 

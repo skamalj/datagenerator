@@ -1,40 +1,30 @@
 records:
-  - type: Ref
-    name: customer
-    count: 12
+  - type: Source
+    count: 10
+    failure_simulation:
+      probability: 10
+      min_source_recs: 5
     schema:
-      - name: cust_id
+      - name: device_id
         namespace: datatype
         unique: true
         function: number
-        args: [{"min":0,"max":10}]
-      - name: firstname
-        namespace: name
-        function: firstName
-        args: [1]
-      - name: lastname
-        namespace: name
-        function: lastName
-  - type: Ref
-    name: product
-    count: 10
-    schema:
-      - name: product_name
-        namespace: commerce
-        unique: true
-        function: productName
-      - name: price
-        namespace: commerce
-        function: price       
+        args: [{"min":1000,"max":9999}]
+      - name: factory_id
+        namespace: datatype
+        function: number
+        args: [{"min":1,"max":5}]
+      - name: section
+        namespace: helpers
+        function: randomize
+        args: [["A","B","C","D","E","F"]]
+      - name: sensor_type
+        namespace: helpers
+        function: randomize
+        args: [["Temp","Vibration","Pressure","Proximity","Smoke","Level"]]
   - type: Master
     schema:
-      - name: customer
-        namespace: ref
-        function: customer
-      - name: product
-        namespace: ref
-        function: product
-      - name: quantity
+      - name: value
         namespace: datatype
         function: number
         args: [{"min":20,"max":50}]

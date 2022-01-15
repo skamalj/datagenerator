@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch via NPM",
+            "request": "launch",
+            "runtimeArgs": [
+                "start",
+                "debug",
+                "--",
+                "-i",
+                "1000"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
             "name": "Attach by Process ID",
             "processId": "${command:PickProcess}",
             "request": "attach",
@@ -12,16 +28,6 @@
                 "<node_internals>/**"
             ],
             "type": "node"
-        },
-        {
-            "name": "Launch Program",
-            "program": "${workspaceFolder}/index.js",
-            "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "args": ["5000"]
         },
     ]
 }
