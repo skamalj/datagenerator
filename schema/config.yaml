@@ -1,9 +1,9 @@
 records:
   - type: Source
-    count: 10
+    count: 150
     failure_simulation:
-      probability: 10
-      min_source_recs: 5
+      probability: 0.1
+      min_source_recs: 25
     schema:
       - name: device_id
         namespace: datatype

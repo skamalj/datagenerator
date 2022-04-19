@@ -47,7 +47,7 @@ class Generator {
             if (schema == "Master") {
                 if (!this.options.noeventtime)
                     record["eventtime"] = Date.now();
-                if (this.source)
+                if (this.source && Object.keys(this.source).length > 0)
                     record["source"] = this.source;
                 if (this.options.csv) record = this.convertToCSV(record)
             }
@@ -59,7 +59,7 @@ class Generator {
     }
 
     convertToCSV(record) {
-        csvRec = ""
+        let csvRec = ""
         Object.values(record).forEach(v => csvRec = csvRec + "," + v)
         return csvRec.substring(1);
     }

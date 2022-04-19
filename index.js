@@ -37,6 +37,17 @@ if (process.env.SINKS_EVENTS_HUB == "Y" || process.env.SINKS_EVENTS_HUB == "y") 
     let eventshub = new Sinks.eventshub();
     enabledSinks.push(eventshub);
 }
+// Create generator for KAFKA
+if (process.env.SINKS_KAFKA == "Y" || process.env.SINKS_KAFKA == "y") {
+    let kafka = new Sinks.kafka();
+    kafka.init(enabledSinks);
+}
+// Create File sink
+if (process.env.SINKS_FILE == "Y" || process.env.SINKS_FILE == "y") {
+    let filesink = new Sinks.filesink(process.env.FILE_SINK_PATH, process.env.FILE_SINK_MAX_RECORDS,enabledSinks);
+    enabledSinks.push(filesink);
+}
+
 
 // Create generators for sources 
 const sources = new Source(options, enabledSinks, refDataGenerator);

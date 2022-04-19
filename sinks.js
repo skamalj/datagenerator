@@ -1,12 +1,9 @@
-const { PubSub } = require('@google-cloud/pubsub');
-const { KinesisClient, PutRecordCommand } = require("@aws-sdk/client-kinesis");
-const { EventHubProducerClient } = require("@azure/event-hubs");
-
 let Sinks = {}
 
 Sinks.pubsub = class pubsub {
     #pubsub;
     constructor() {
+        const { PubSub } = require('@google-cloud/pubsub');
         this.projectId = process.env.PUBSUB_PROJECT_ID
         this.topic = process.env.PUBSUB_TOPIC
         this.#pubsub = new PubSub({ projectId: this.projectId })
@@ -32,10 +29,12 @@ Sinks.kinesis = class kinesis {
     #kinesis;
     #streamname;
     constructor() {
+        const { KinesisClient } = require("@aws-sdk/client-kinesis");
         this.#streamname = process.env.KINESIS_STREAM_NAME
         this.#kinesis = new KinesisClient({ region: process.env.KINESIS_REGION });
     }
     write(rec) {
+        const {PutRecordCommand } = require("@aws-sdk/client-kinesis");
         try {
             let [partkey] = Object.keys(rec);
             var params = {
@@ -61,6 +60,7 @@ Sinks.kinesis = class kinesis {
 Sinks.eventshub = class EventsHub {
     #producer;
     constructor() {
+        const { EventHubProducerClient } = require("@azure/event-hubs");
         this.#producer = new EventHubProducerClient(process.env.EVENT_HUB_CONN_STRING,
             process.env.EVENT_HUB_NAME);
     }
@@ -115,7 +115,104 @@ Sinks.console = class console {
         this.#con = con
     }
     write(rec) {
-        this.#con.write(JSON.stringify(rec) + "\n");
+        try {
+            JSON.parse(rec)
+            this.#con.write(rec + "\n");
+        } catch (error) {
+            this.#con.write(JSON.stringify(rec) + "\n");
+        }
     }
 }
+
+// Create file sink using fs module, with limit of max_records
+
+Sinks.filesink = class FileSink {
+    #fs;
+    #file;
+    #max_records;
+    #records_written = 0
+    #enabledsinks
+    constructor(file, max_records = 50000, enabledsinks) {
+        this.#fs = require('fs');
+        this.#file = file
+        this.#max_records = max_records
+        this.#enabledsinks = enabledsinks
+    }
+    // Remove sink from array enabledsinks
+    disable() {
+        this.#enabledsinks.splice(this.#enabledsinks.indexOf(this), 1)
+    }
+
+    write(rec) {
+        try {
+            JSON.parse(rec)
+            if (this.#records_written < this.#max_records) {
+                this.#records_written++
+                this.#fs.appendFileSync(this.#file, rec + "\n");
+            } else {
+                console.log(`${this.#records_written} records written to file sink`);
+                this.disable();
+            }
+        } catch (error) {
+            if (this.#records_written < this.#max_records) {
+                this.#records_written++
+                this.#fs.appendFileSync(this.#file, JSON.stringify(rec) + "\n");
+            } else {
+                console.log(`${this.#records_written} records written to file sink`);
+                this.disable();
+            }
+        }
+    }
+}
+
+// Create kafka sink using kafkajs module
+Sinks.kafka = class Kafka {
+    #topic;
+    #producer;
+    constructor() {
+
+        const { Kafka } = require('kafkajs')
+        const kafka = new Kafka({
+            clientId: 'generator-app',
+            brokers: process.env.KAFKA_BROKERS.split(","),
+            connectionTimeout: 5000,
+            authenticationTimeout: 5000,
+            reauthenticationThreshold: 20000,
+            ssl: true,
+            sasl: {
+                mechanism: 'plain', 
+                username: process.env.KAFKA_USERNAME,
+                password: process.env.KAFKA_PASSWORD
+             },
+        });
+
+        this.#producer = kafka.producer()
+        this.#topic = process.env.KAFKA_TOPIC
+    }
+    init(enabledsinks) {
+        console.log("Initializing kafka sink")
+        this.#producer.connect()
+        .then(() => {
+            enabledsinks.push(this)
+            console.log(`Kafka sink connected for topic ${this.#topic}`);
+        })
+        .catch((error) => {
+            console.log(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
+        })
+    }
+    write(rec) {
+        this.#producer.send({
+            topic: this.#topic,
+            messages: [
+                {value: JSON.stringify(rec) }
+            ],
+            acks: 0
+        })
+        .then(() => {})
+        .catch((error) => {
+            console.log(`Error sending record to kafka: ${error}`);
+        })
+    }
+}
+
 module.exports = { Sinks }

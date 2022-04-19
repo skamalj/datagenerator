@@ -4,11 +4,11 @@ records:
       - name: id
         namespace: datatype
         function: number
-        args: [{"min":0,"max":10}]
+        args: [{"min":0,"max":4}]
       - name: temp
         namespace: datatype
         function: float
-        args: [{"min":20,"max":50}]
+        args: [{"min":110,"max":125}]
         anomaly:
-          magnitude: 5
-          frequency: 20
+          magnitude: 1.5
+          frequency: 1
