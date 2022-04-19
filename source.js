@@ -48,6 +48,17 @@ class Source {
             this.startSource(i);
         }
     }
+    reStartAll() {
+        for (let i = 0; i < this.sources.length(); i++) {
+            this.stopSource(i);
+            this.startSource(i);
+        }
+    }
+    // Reset interval and restart all sources
+    resetInterval(interval) {
+        this.interval = interval;
+        this.reStartAll();
+    }
     // This function can be used from management server to stop a source
     stopSource(i) {
         clearInterval(this.sources.get(i).intervalId);
@@ -70,7 +81,15 @@ class Source {
                 runningSources++;
             }
         }
-        return runningSources;
+        return (runningSources.toString() + "\n");
+    }
+    // List enabled sinks
+    listEnabledSinks() {
+        let enabledSinks = [];
+        for (let i = 0; i < this.enabledSinks.length; i++) {
+            enabledSinks.push(this.enabledSinks[i].constructor.name);
+        }
+        return enabledSinks.toString() + "\n";
     }
     // Simulate device/source failure
     randomlyRemoveSources() {

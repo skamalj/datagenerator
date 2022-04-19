@@ -98,8 +98,21 @@ const management_server = net.createServer({ allowHalfOpen: true }, (c) => {
                     case "count":
                         c.write(sources.getRunningSources());
                         break;
+                    case "interval":
+                        sources.resetInterval(parseInt(words[2]));
+                        break;
                     default:
                         c.write("Usage : source start|stop|count <source number>. Recieved argument: " + words[1]);
+                        break;
+                }
+                break;
+            case "sink":
+                switch (words[1] ? words[1].trim() : "") {
+                    case "list":
+                        c.write(sources.listEnabledSinks());
+                        break;
+                    default:
+                        c.write("Usage : sink list. Recieved argument: " + words[1]);
                         break;
                 }
                 break;

@@ -5,7 +5,7 @@ This supports sending streaming fake data to:-
 * AWS Kinesis
 * Google Cloud PubSub
 * Azure Events Hub
-+ Kafka on Confluent Cloud
+* Kafka on Confluent Cloud
 * File
 
 Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
