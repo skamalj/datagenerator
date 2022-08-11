@@ -18,8 +18,9 @@ Runtime environment is set in `.env` file. Move sample.env file to .env and set 
 * For Azure use `az login` 
 
 
-Install the dependencies 
+Install the dependencies (new faker library must be installed as dev dependency)
 >`npm install`
+>`npm install --save-dev  @faker-js/faker`
 
 ## Record Configuration
 Record configuration is in schema file and uses YAML format. Default is schema/config.yaml.
