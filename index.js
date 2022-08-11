@@ -44,7 +44,8 @@ if (process.env.SINKS_KAFKA == "Y" || process.env.SINKS_KAFKA == "y") {
 }
 // Create File sink
 if (process.env.SINKS_FILE == "Y" || process.env.SINKS_FILE == "y") {
-    let filesink = new Sinks.filesink(process.env.FILE_SINK_PATH, process.env.FILE_SINK_MAX_RECORDS,enabledSinks);
+    let filesink = new Sinks.filesink(process.env.FILE_SINK_PATH, process.env.FILE_SINK_MAX_RECORDS,
+        process.env.NO_OF_FILES,enabledSinks);
     enabledSinks.push(filesink);
 }
 

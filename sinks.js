@@ -128,15 +128,20 @@ Sinks.console = class console {
 
 Sinks.filesink = class FileSink {
     #fs;
+    #basefilename
     #file;
     #max_records;
+    #no_of_files = 10
     #records_written = 0
+    #files_written = 1
     #enabledsinks
-    constructor(file, max_records = 50000, enabledsinks) {
+    constructor(file_base_name, max_records = 50000, no_of_files = 10, enabledsinks) {
         this.#fs = require('fs');
-        this.#file = file
+        this.#file = file_base_name + '_1.json'
+        this.#basefilename = file_base_name
         this.#max_records = max_records
         this.#enabledsinks = enabledsinks
+        this.#no_of_files = no_of_files
     }
     // Remove sink from array enabledsinks
     disable() {
@@ -144,23 +149,24 @@ Sinks.filesink = class FileSink {
     }
 
     write(rec) {
+        var parsed_rec
         try {
-            JSON.parse(rec)
-            if (this.#records_written < this.#max_records) {
-                this.#records_written++
-                this.#fs.appendFileSync(this.#file, rec + "\n");
-            } else {
-                console.log(`${this.#records_written} records written to file sink`);
-                this.disable();
-            }
+            JSON.parse(rec) 
+            parsed_rec = rec + "\n"    
         } catch (error) {
-            if (this.#records_written < this.#max_records) {
-                this.#records_written++
-                this.#fs.appendFileSync(this.#file, JSON.stringify(rec) + "\n");
-            } else {
-                console.log(`${this.#records_written} records written to file sink`);
-                this.disable();
-            }
+            parsed_rec = JSON.stringify(rec) + "\n"    
+        }
+        if (this.#records_written < this.#max_records) {
+            this.#records_written++
+            this.#fs.appendFileSync(this.#file, parsed_rec);
+        } else if (this.#files_written < this.#no_of_files) {
+            console.log(`${this.#records_written} records written to file sink ${this.#file}`);
+            this.#files_written++
+            this.#records_written = 0
+            this.#file = this.#basefilename + '_' + this.#files_written + '.json'
+        } else {
+            console.log(`${this.#records_written} records written to file sink ${this.#file}`);
+            this.disable();
         }
     }
 }
