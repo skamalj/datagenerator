@@ -15,12 +15,12 @@ records:
         function: number
         args: [{"min":1,"max":5}]
       - name: section
-        namespace: helpers
-        function: randomize
+        namespace: custom
+        function: randomElement
         args: [["A","B","C","D","E","F"]]
       - name: sensor_type
-        namespace: helpers
-        function: randomize
+        namespace: custom
+        function: randomElement
         args: [["Temp","Vibration","Pressure","Proximity","Smoke","Level"]]
   - type: Master
     schema:

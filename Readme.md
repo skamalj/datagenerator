@@ -8,6 +8,8 @@ This supports sending streaming fake data to:-
 * Kafka on Confluent Cloud
 * File
 
+One or more of these can be configured in ".env" environment file. Look at the sample file to configure properties for these.
+
 Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
 * It allows you to enable multiple sinks at the same time if you want.
 * Read sample.env for details
@@ -78,8 +80,12 @@ If you need to send data for 10 devices at regular interval, you cannot do that 
 * Repeat, now notivce that since device selection is random, same device can be picked up for generating record or any other
 
 Now if you define devices as sources, data is generated in following way:-
-* Multiple generator are created onme for each source with the set interval (say 5 secs)
+* Multiple generator are created once for each source with the set interval (say 5 secs)
 * At each interval you will get data records for each source/device
+
+### Failure Simulation
+* To simulate source failure, set probability of source failure - 0.01 - 100. At each iteration/interval probability is calculated for each source for failure and are taken out of generator.
+* You can also set min. number of sources which should remain to override failure simulation.  No sources will be marked fail if number of sources falls to this level
 
 Caution:  If you are planning on large number of sources, then keep you interval large as well else you will overwhelm  your system
 
@@ -151,6 +157,16 @@ Options:
 
 ```
 Interval and port  can be set in .env file as well. Commandline input(`optional`)  will overide this value.
+
+## Management Server
+You can connect to management server on port 4001 (override in .env file)
+Below commands are available 
+```
+source start <source id>
+source stop <source id>
+source count
+source interval <interval>
+```
 
 Output is json formatted.
 ## Some Examples

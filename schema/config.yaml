@@ -1,15 +1,27 @@
 records:
+  - type: Source
+    count: 10
+    schema:
+      - name: id
+        namespace: datatype
+        unique: true
+        function: number
+        args: [{"min":1000,"max":9999}]
+      - name: base
+        namespace: datatype
+        function: number
+        args: [{"min":110,"max":135}]
   - type: Master
     schema:
-      - name: user
+      - name: variation
         namespace: datatype
         function: number
-        args: [{"min":0,"max":3}]
-      - name: item
-        namespace: helpers
-        function: randomize
-        args: [["itemA","itemB","itemC"]]
-      - name: quantity
+        args: [{"min":-7,"max":7}]
+      - name: isanomaly
         namespace: datatype
         function: number
-        args: [{"min":-10,"max":10}]
+        args: [{"min":1,"max":1}]
+        anomaly:
+          magnitude: 5
+          frequency: 1
+

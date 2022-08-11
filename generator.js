@@ -1,7 +1,7 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
 const { Sinks } = require('./sinks.js');
-const faker = require('faker');
+const { faker }= require('./faker.js');
 
 class Generator {
     refRecords = {};
