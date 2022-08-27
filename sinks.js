@@ -1,3 +1,7 @@
+const { S3 } = require('aws-sdk');
+const { env } = require('process');
+const { createInflate } = require('zlib');
+
 let Sinks = {}
 
 Sinks.pubsub = class pubsub {
@@ -127,17 +131,16 @@ Sinks.console = class console {
 // Create file sink using fs module, with limit of max_records
 
 Sinks.filesink = class FileSink {
-    #fs;
     #basefilename
     #file;
     #max_records;
     #no_of_files = 10
     #records_written = 0
-    #files_written = 1
+    #files_written = 0
     #enabledsinks
+    #contents = ''
     constructor(file_base_name, max_records = 50000, no_of_files = 10, enabledsinks) {
-        this.#fs = require('fs');
-        this.#file = file_base_name + '_1.json'
+        this.#file = file_base_name + '_0.json'
         this.#basefilename = file_base_name
         this.#max_records = max_records
         this.#enabledsinks = enabledsinks
@@ -156,18 +159,57 @@ Sinks.filesink = class FileSink {
         } catch (error) {
             parsed_rec = JSON.stringify(rec) + "\n"    
         }
-        if (this.#records_written < this.#max_records) {
+        if ((this.#records_written < this.#max_records)  && (this.#files_written < this.#no_of_files)) {
             this.#records_written++
-            this.#fs.appendFileSync(this.#file, parsed_rec);
+            this.#contents += parsed_rec;
         } else if (this.#files_written < this.#no_of_files) {
-            console.log(`${this.#records_written} records written to file sink ${this.#file}`);
             this.#files_written++
             this.#records_written = 0
+            this.createFile(this.#file, this.#contents)
+            this.#contents=''
             this.#file = this.#basefilename + '_' + this.#files_written + '.json'
         } else {
-            console.log(`${this.#records_written} records written to file sink ${this.#file}`);
             this.disable();
         }
+    }
+    createFile(file, contents){
+        switch(process.env.FILE_SINK_TYPE) {
+            case 'S3':
+                this.pushToS3(file,contents)
+                break;
+            default:
+                this.createLocalFile(file,contents)
+        }
+    }
+    pushToS3(file,contents) {
+        const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+        var s3 = new S3Client();
+        var params = {
+            Body: Buffer.from(contents,"utf-8"), 
+            Bucket: env.S3_BUCKET_NAME, 
+            Key: file
+           };
+           s3.send(new PutObjectCommand(params), function(err, data) {
+             if (err) console.log(err, err.stack); 
+             else     console.log(`File ${file} pushed to S3`);        
+           });
+    }
+    createLocalFile(file, contents) {
+        const fs = require('fs');
+        var data = Buffer.from(contents,'utf-8')
+        fs.open(file,'a' , function(err, fd) {
+            if (err) {
+                console.log(`Cannot open file ${file}`)
+            } else {
+                fs.write(fd,data, 0, data.lenght, null, function(err, byteswritten) {
+                    if (err) { 
+                        console.log(`Cannot write to file ${file}: ${err}`)
+                    } else {
+                        console.log(`File ${file} created`)
+                    }
+                })
+            }
+        })
     }
 }
 

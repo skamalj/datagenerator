@@ -6,7 +6,7 @@ This supports sending streaming fake data to:-
 * Google Cloud PubSub
 * Azure Events Hub
 * Kafka on Confluent Cloud
-* File
+* File (Local or S3)
 
 One or more of these can be configured in ".env" environment file. Look at the sample file to configure properties for these.
 
