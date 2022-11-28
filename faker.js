@@ -1,3 +1,5 @@
+// Faker github page - https://github.com/faker-js/faker
+
 var { faker }  = require('@faker-js/faker');
 
 class Custom {

@@ -3,6 +3,7 @@ const { Sinks } = require('./sinks.js');
 const { Source } = require('./source.js');
 const { program } = require('./argparser.js');
 const { Generator } = require('./generator.js');
+const { createAPIMocker, createConfigManagerAPI } = require('./api.js')
 
 // Load generator environment. 
 // Read here - https://github.com/motdotla/dotenv
@@ -17,6 +18,8 @@ console.log(options)
 // This genearator instance is then used to pass reference data to other data generatorss
 // whose number depends upon the number of sources configured.
 const refDataGenerator = new Generator(options);
+createAPIMocker(refDataGenerator.refRecords, refDataGenerator.recordSchemas, 3000)
+createConfigManagerAPI('./schema/schemaapi.yaml')
 
 // Store for record options defined in config
 var enabledSinks = [];

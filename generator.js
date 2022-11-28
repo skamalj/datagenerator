@@ -2,6 +2,7 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 const { Sinks } = require('./sinks.js');
 const { faker }= require('./faker.js');
+const { SchemaManager } = require('./schema_manager.js');
 
 class Generator {
     refRecords = {};
@@ -88,19 +89,8 @@ class Generator {
     loadRecordConfig() {
         let schemafile = this.options.schemafile ? this.options.schemafile : "./schema/config.yaml";
         try {
-            var contents = fs.readFileSync(schemafile, 'utf8');
-            var configdata = yaml.load(contents);
-
-            for (const config of configdata.records) {
-                if (config.hasOwnProperty("type") && config.type == "Ref") {
-                    this.recordSchemas[config.name] = config;
-                } else if (config.hasOwnProperty("type") && config.type == "Source") {
-                    this.recordSchemas["Source"] = config;
-                } else {
-                    this.recordSchemas["Master"] = config;
-                }
-            }
-            console.log('File processed. Options are: ' + JSON.stringify(this.recordSchemas));
+            var schema_manager = SchemaManager.createInstance(schemafile)
+            this.recordSchemas =  schema_manager.getSchemas()
         } catch (err) {
             console.error(err);
         }

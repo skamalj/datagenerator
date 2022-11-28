@@ -103,13 +103,24 @@ Sinks.memory = class memory {
     remove(i) {
         let rec = this.#mem.splice(i, 1);
         this.#removed_recs.push(rec);
-        console.log(`Removed record:  + ${JSON.stringify(rec)}, sink has now ${this.#mem.length} records`);
+        console.log(`Removed record:   ${JSON.stringify(rec)}, sink has now ${this.#mem.length} records`);
     }
     length() {
         return this.#mem.length
     }
+    get() {
+        return this.#mem
+    }
     checkIfColValueExists(colName, colValue) {
         return this.#mem.filter(rec => rec[colName] == colValue).length > 0
+    }
+    getElementByValue(colName, colValue) {
+        return this.#mem.filter(rec => rec[colName] == colValue)
+    }
+    removeElementByValue(colName, colValue) {
+        let element =  this.#mem.filter(rec => rec[colName] == colValue)
+        this.#mem = this.#mem.filter(rec => rec[colName] != colValue)
+        return element
     }
 }
 //Console sink for testing
