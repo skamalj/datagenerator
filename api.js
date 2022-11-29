@@ -46,8 +46,8 @@ function createAPIMocker(refData, recordSchemas) {
     }
 }
 
-function createConfigManagerAPI(schemafile) {
-    const schemaManager = SchemaManager.createInstance(schemafile)
+function createConfigManagerAPI() {
+    const schemaManager = SchemaManager.getInstance()
     configRouter.use(bodyParser.json())
     configRouter.get('/:schema', (req, res) => {
             res.send(schemaManager.getSchema(req.params.schema))

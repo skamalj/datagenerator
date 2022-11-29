@@ -89,7 +89,7 @@ class Generator {
     loadRecordConfig() {
         let schemafile = this.options.schemafile ? this.options.schemafile : "./schema/config.yaml";
         try {
-            var schema_manager = SchemaManager.createInstance(schemafile)
+            var schema_manager = SchemaManager.getInstance(schemafile)
             this.recordSchemas =  schema_manager.getSchemas()
         } catch (err) {
             console.error(err);
