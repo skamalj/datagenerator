@@ -99,15 +99,29 @@ class Generator {
     // Generate reference records and store in memory sink
     generateRefRecords() {
         console.log("Generating reference records");
-        for (let record in this.recordSchemas) {
-            if (record != "Master") {
-                this.refRecords[record] = new Sinks.memory();
-                for (let i = 0; i < this.recordSchemas[record].count; i++) {
-                    this.genFakeRecord([this.refRecords[record]], record);
-                }
-                console.log(this.refRecords[record].length() + " records generated for " + record);
+        for (let schema in this.recordSchemas) {
+            if (schema != "Master") {
+                this.generateRefRecordsForSchema(schema)
             }
         }
     }
+
+    generateRefRecordsForSchema(schema) {
+        this.refRecords[schema] = new Sinks.memory();
+        for (let i = 0; i < this.recordSchemas[schema].count; i++) {
+            this.genFakeRecord([this.refRecords[schema]], schema);
+        }
+        console.log(this.refRecords[schema].length() + " records generated for " + schema);
+    }
 }
-module.exports = { Generator }
+
+class RefDataGenerator {
+    static getInstance(options = null) {
+        if (RefDataGenerator.instance)
+            return RefDataGenerator.instance
+        else 
+            return RefDataGenerator.instance = new Generator(options)
+    }
+}
+
+module.exports = { Generator, RefDataGenerator }

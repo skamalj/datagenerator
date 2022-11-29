@@ -1,6 +1,7 @@
 const express = require('express')
 var bodyParser = require('body-parser')
 const { SchemaManager } = require('./schema_manager')
+const {RefDataGenerator } = require('./generator.js');
 
 const app = express()
 var mockRouter = express.Router()
@@ -31,7 +32,11 @@ function createAPIMocker(refData, recordSchemas) {
                         res.status(404).send(`/${schema}/${req.params.id} NOT FOUND`)
                 })
                 mockRouter.delete(`/${schema}/:id`, (req, res) => {
-                    res.send(refData[schema].removeElementByValue(col.name, req.params.id))
+                    data = refData[schema].removeElementByValue(col.name, req.params.id)
+                    if (data.length > 0)
+                        res.send(data[0])
+                    else
+                        res.status(404).send(`/${schema}/${req.params.id} NOT FOUND`)
                 })
                 break
             }
@@ -39,7 +44,6 @@ function createAPIMocker(refData, recordSchemas) {
                 res.send(refData[schema].get())
             })
             mockRouter.post(`/${schema}`, (req, res) => {
-                console.log(req.body)
                 res.send(refData[schema].write(req.body))
             })
         }
@@ -60,7 +64,6 @@ function createConfigManagerAPI() {
     })
     configRouter.post('/', (req, res) => {
         record = req.body
-        console.log(Object.keys(record)[0])
         switch(Object.keys(record)[0]) {
             case 'Source':
                 schemaManager.addSourceRecord(record)
@@ -68,7 +71,10 @@ function createConfigManagerAPI() {
             case 'Master':
                 break;
             default:
+                var refDataGenerator = RefDataGenerator.getInstance()
                 schemaManager.addRefRecord(record)
+                refDataGenerator.generateRefRecordsForSchema(Object.keys(record)[0])
+                createAPIMocker(refDataGenerator.refRecords, refDataGenerator.recordSchemas)
         }
         res.send(schemaManager.getSchemas())
     })
