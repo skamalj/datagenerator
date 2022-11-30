@@ -6,6 +6,13 @@
 * [Record Schema Configuration](#record-schema-configuration)
   * [Master](#master-record)
   * [Reference](#reference-records)
+    * [Ref record with Raster](#ref-records-with-master)
+  * [Source](#source-type-records)
+    * [Failure Simulation](#source-failure-simulation)
+    * [Record schema with source](#source-sample-configuration)
+      * [Sample records with source config](#output-for-above-config)
+* [Using Generator](#execution)
+* [Examples](#some-examples)
 
 ## Overview
 API Mocker and data generator is based on [faker nodejs library](https://fakerjs.dev/api/). 
@@ -36,12 +43,15 @@ Runtime environment is set in `.env` file. Move sample.env file to .env and set 
 * For AWS you should have default profile set or set AWS_PROFILE environment variable
 * For Azure use `az login` 
 
-
 ## Record Schema Configuration
 Record configuration is in schema file and uses YAML format. Default is schema/config.yaml.
 Each entry in config file denotes the field in the record and the Faker functions which needs to be called.
 
-### Master Record
+### **Using faker**
+Faker functioon is called `namespace.function`. These are described [here](https://fakerjs.dev/api/). Namespace and function are two options you specify when defining a field in record schema.
+
+
+### **Master Record**
 Master record is the only record for which records are generated and sent to Sinks.
 ```
 records:
@@ -55,8 +65,8 @@ records:
           magnitude: <Multiplier for the data>
           frequency: <%age of samles in which to introduce anomaly>
 ```
-### Reference Records
 
+### **Reference Records**
 If you need to generate data against fixed set of master records Ex. across 'X' number of customers 
 , buying 'Y' number of products in some quantities.  In this case 'Ref' records can be used for customers and Products, which can then be used to generate master transactions/records.
 
@@ -80,7 +90,8 @@ records:
         namespace: name
         function: lastName
 ```
-### Using Ref records in Master
+
+### **Ref records with Master**
 In this case specify namespace as "ref" and fucntion as the name of Ref record. This will pick single record at random from the generated records and insert into master record.
 
 ```
@@ -91,23 +102,28 @@ In this case specify namespace as "ref" and fucntion as the name of Ref record. 
         function: customer
 ```
 
-## Source type records
-If you need to send data for 10 devices at regular interval, you cannot do that with master/ref records.  If you configure 10 devices using and generate record using master, then following happens
+### **Source type records**
+If you need to send data for 10 devices at regular interval, you cannot do that with master/ref records.  If you configure 10 devices using range 1..10 and generate record using master, then following happens
 * one device is selected at random from 10 devices
 * Master record is generated for that device
-* Repeat, now notivce that since device selection is random, same device can be picked up for generating record or any other
+* Repeat, now notice that since device selection is random, same device can be picked up for generating record or any other
+   * What we actually need is to generate 10 records, simultaneously,  at any point in time for 10 devices and then repeat at certain interval. 
 
 Now if you define devices as sources, data is generated in following way:-
 * Multiple generator are created once for each source with the set interval (say 5 secs)
 * At each interval you will get data records for each source/device
 
-### Failure Simulation
+#### **Source Failure Simulation**
 * To simulate source failure, set probability of source failure - 0.01 - 100. At each iteration/interval probability is calculated for each source for failure and are taken out of generator.
 * You can also set min. number of sources which should remain to override failure simulation.  No sources will be marked fail if number of sources falls to this level
 
 Caution:  If you are planning on large number of sources, then keep you interval large as well else you will overwhelm  your system
 
 In below sample 10 records are generated every 'X' interval for each source.
+
+`Note that you do not need to refer source records in master unlike ref records`
+
+#### Source sample configuration
 ```
 records:
   - type: Source
@@ -140,7 +156,7 @@ records:
         function: number
         args: [{"min":20,"max":50}]
 ```
-### Sample Records for above config
+#### Output for above config
 ```
 {"value":28,"eventtime":1642228409846,"source":{"device_id":2746,"factory_id":5,"section":"B","sensor_type":"Proximity"}}
 {"value":32,"eventtime":1642228409846,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
