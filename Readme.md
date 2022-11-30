@@ -11,6 +11,8 @@
     * [Failure Simulation](#source-failure-simulation)
     * [Record schema with source](#source-sample-configuration)
       * [Sample records with source config](#output-for-above-config)
+* [Mock API](#ref-records-as-api-mocks)
+* [Schema API](#schema-api)
 * [Using Generator](#execution)
 * [Examples](#some-examples)
 
@@ -167,6 +169,21 @@ records:
 {"value":27,"eventtime":1642228439854,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
 {"value":29,"eventtime":1642228439854,"source":{"device_id":8736,"factory_id":4,"section":"A","sensor_type":"Temp"}}
 ```
+
+## Ref records as API Mocks
+* All Ref records are available as API Mocks at endpoint `/mock/<recordname>`
+  * GET /
+  * GET /{id}
+    * id is matched against whatver is name if first filed in record schema
+  * DELETE /{id}
+  * POST /
+    * Record JSON as request body 
+
+## Schema API
+`/schema` API endpoint can also be used to configure reference and source records. This end point support GET, GET /{schema}, POST and DELETE /{schema} operations.
+
+POST accepts record schema as JSON. You can first GET the records and used those to generate new ones. Records are still saved as YAML files.
+
 ## Execution
 
 Below command generates one record each second for 1 min and writes them to port 4000 or PORT set in .env file. 
