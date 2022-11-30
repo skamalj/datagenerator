@@ -1,5 +1,5 @@
 // import generator
-const { Generator } = require('./generator.js');
+const { Generator, RefDataGenerator } = require('./generator.js');
 const { Sinks } = require('./sinks.js');
 
 // This class creates a generator for a specific source
@@ -8,11 +8,11 @@ const { Sinks } = require('./sinks.js');
 // which disables randomly selected source.
 
 class Source {
-    constructor(options, enabledSinks, refDataGenerator) {
+    constructor(options, enabledSinks) {
         this.options = options;
         this.enabledSinks = enabledSinks;
-        this.refDataGenerator = refDataGenerator;
-        this.sources = refDataGenerator.refRecords["Source"] ? refDataGenerator.refRecords["Source"] : new Sinks.memory();
+        this.refDataGenerator = RefDataGenerator.getInstance();
+        this.sources = this.refDataGenerator.refRecords["Source"] ? this.refDataGenerator.refRecords["Source"] : new Sinks.memory();
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
         this.startAll();

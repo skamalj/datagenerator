@@ -1,0 +1,32 @@
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+        args: [{"min":1,"max":30000}]
+      - name: dept
+        namespace: datatype
+        function: number
+        args: [{"min":1,"max":100}]
+      - name: firstname
+        namespace: name
+        function: firstName
+        args: [1]
+      - name: lastname
+        namespace: name
+        function: lastName
+      - name: email
+        namespace: internet
+        function: email        
+      - name: phone
+        namespace: phone
+        function: number
+      - name: joiningDate
+        namespace: date
+        function: past
+        args: ["5","01-01-2017"]
+      - name: pincode
+        namespace: datatype
+        function: number
+        args: [{"min":100000,"max":199999}]

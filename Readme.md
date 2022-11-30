@@ -1,15 +1,43 @@
-Data generator based on [faker nodejs library](https://github.com/Marak/faker.js)
+# Fibber - Mock any API,  Generate Unlimited Fake Data
 
-This supports sending streaming fake data to:-
-* Socket
-* AWS Kinesis
-* Google Cloud PubSub
-* Azure Events Hub
-* Kafka on Confluent Cloud
-* File (Local or S3)
+* [Overview](#overview)
+* [install](#install)
+* [Sinks](#configure-sinks)
+* [Record Schema Configuration](#record-schema-configuration)
+  * [Master](#master-record)
+  * [Reference](#reference-records)
+    * [Ref record with Raster](#ref-records-with-master)
+  * [Source](#source-type-records)
+    * [Failure Simulation](#source-failure-simulation)
+    * [Record schema with source](#source-sample-configuration)
+      * [Sample records with source config](#output-for-above-config)
+* [Mock API](#ref-records-as-api-mocks)
+* [Schema API](#schema-api)
+* [Using Generator](#execution)
+* [Examples](#some-examples)
 
-One or more of these can be configured in ".env" environment file. Look at the sample file to configure properties for these.
+## Overview
+API Mocker and data generator is based on [faker nodejs library](https://fakerjs.dev/api/). 
+Data is generated in JSON format.  Required schema definition file maps record field to faker API method. This is then used by record generator to generate fake records and send to configured Sinks.
+Data can be streamed into destinations or batched into files.
 
+These featutres are supported:-
+* Mock any API - Support GET, DELETE, POST
+* Send fake data to:-
+  * Socket
+  * AWS Kinesis
+  * Google Cloud PubSub
+  * Azure Events Hub
+  * Kafka on Confluent Cloud
+  * File (Local or S3)
+
+
+## Install 
+Install dependencies (faker library must be installed as dev dependency)
+>`npm install`
+>`npm install --save-dev  @faker-js/faker`
+
+## Configure Sinks
 Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
 * It allows you to enable multiple sinks at the same time if you want.
 * Read sample.env for details
@@ -17,15 +45,16 @@ Runtime environment is set in `.env` file. Move sample.env file to .env and set 
 * For AWS you should have default profile set or set AWS_PROFILE environment variable
 * For Azure use `az login` 
 
-
-Install the dependencies (new faker library must be installed as dev dependency)
->`npm install`
->`npm install --save-dev  @faker-js/faker`
-
-## Record Configuration
+## Record Schema Configuration
 Record configuration is in schema file and uses YAML format. Default is schema/config.yaml.
+Each entry in config file denotes the field in the record and the Faker functions which needs to be called.
 
-Each entry in config file denotes the field in the record and the Faker functions which needs to be called. Its format is as below:-
+### **Using faker**
+Faker functioon is called `namespace.function`. These are described [here](https://fakerjs.dev/api/). Namespace and function are two options you specify when defining a field in record schema.
+
+
+### **Master Record**
+Master record is the only record for which records are generated and sent to Sinks.
 ```
 records:
   - type: <Master>
@@ -38,8 +67,8 @@ records:
           magnitude: <Multiplier for the data>
           frequency: <%age of samles in which to introduce anomaly>
 ```
-### Using reference records
 
+### **Reference Records**
 If you need to generate data against fixed set of master records Ex. across 'X' number of customers 
 , buying 'Y' number of products in some quantities.  In this case 'Ref' records can be used for customers and Products, which can then be used to generate master transactions/records.
 
@@ -63,7 +92,8 @@ records:
         namespace: name
         function: lastName
 ```
-### Using Ref records in Master
+
+### **Ref records with Master**
 In this case specify namespace as "ref" and fucntion as the name of Ref record. This will pick single record at random from the generated records and insert into master record.
 
 ```
@@ -74,23 +104,28 @@ In this case specify namespace as "ref" and fucntion as the name of Ref record. 
         function: customer
 ```
 
-## Source type records
-If you need to send data for 10 devices at regular interval, you cannot do that with master/ref records.  If you configure 10 devices using and generate record using master, then following happens
+### **Source type records**
+If you need to send data for 10 devices at regular interval, you cannot do that with master/ref records.  If you configure 10 devices using range 1..10 and generate record using master, then following happens
 * one device is selected at random from 10 devices
 * Master record is generated for that device
-* Repeat, now notivce that since device selection is random, same device can be picked up for generating record or any other
+* Repeat, now notice that since device selection is random, same device can be picked up for generating record or any other
+   * What we actually need is to generate 10 records, simultaneously,  at any point in time for 10 devices and then repeat at certain interval. 
 
 Now if you define devices as sources, data is generated in following way:-
 * Multiple generator are created once for each source with the set interval (say 5 secs)
 * At each interval you will get data records for each source/device
 
-### Failure Simulation
+#### **Source Failure Simulation**
 * To simulate source failure, set probability of source failure - 0.01 - 100. At each iteration/interval probability is calculated for each source for failure and are taken out of generator.
 * You can also set min. number of sources which should remain to override failure simulation.  No sources will be marked fail if number of sources falls to this level
 
 Caution:  If you are planning on large number of sources, then keep you interval large as well else you will overwhelm  your system
 
 In below sample 10 records are generated every 'X' interval for each source.
+
+`Note that you do not need to refer source records in master unlike ref records`
+
+#### Source sample configuration
 ```
 records:
   - type: Source
@@ -123,7 +158,7 @@ records:
         function: number
         args: [{"min":20,"max":50}]
 ```
-### Sample Records for above config
+#### Output for above config
 ```
 {"value":28,"eventtime":1642228409846,"source":{"device_id":2746,"factory_id":5,"section":"B","sensor_type":"Proximity"}}
 {"value":32,"eventtime":1642228409846,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
@@ -134,6 +169,21 @@ records:
 {"value":27,"eventtime":1642228439854,"source":{"device_id":8676,"factory_id":3,"section":"F","sensor_type":"Temp"}}
 {"value":29,"eventtime":1642228439854,"source":{"device_id":8736,"factory_id":4,"section":"A","sensor_type":"Temp"}}
 ```
+
+## Ref records as API Mocks
+* All Ref records are available as API Mocks at endpoint `/mock/<recordname>`
+  * GET /
+  * GET /{id}
+    * id is matched against whatver is name if first filed in record schema
+  * DELETE /{id}
+  * POST /
+    * Record JSON as request body 
+
+## Schema API
+`/schema` API endpoint can also be used to configure reference and source records. This end point support GET, GET /{schema}, POST and DELETE /{schema} operations.
+
+POST accepts record schema as JSON. You can first GET the records and used those to generate new ones. Records are still saved as YAML files.
+
 ## Execution
 
 Below command generates one record each second for 1 min and writes them to port 4000 or PORT set in .env file. 

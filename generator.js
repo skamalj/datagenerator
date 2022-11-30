@@ -2,6 +2,7 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 const { Sinks } = require('./sinks.js');
 const { faker }= require('./faker.js');
+const { SchemaManager } = require('./schema_manager.js');
 
 class Generator {
     refRecords = {};
@@ -88,19 +89,8 @@ class Generator {
     loadRecordConfig() {
         let schemafile = this.options.schemafile ? this.options.schemafile : "./schema/config.yaml";
         try {
-            var contents = fs.readFileSync(schemafile, 'utf8');
-            var configdata = yaml.load(contents);
-
-            for (const config of configdata.records) {
-                if (config.hasOwnProperty("type") && config.type == "Ref") {
-                    this.recordSchemas[config.name] = config;
-                } else if (config.hasOwnProperty("type") && config.type == "Source") {
-                    this.recordSchemas["Source"] = config;
-                } else {
-                    this.recordSchemas["Master"] = config;
-                }
-            }
-            console.log('File processed. Options are: ' + JSON.stringify(this.recordSchemas));
+            var schema_manager = SchemaManager.getInstance(schemafile)
+            this.recordSchemas =  schema_manager.getSchemas()
         } catch (err) {
             console.error(err);
         }
@@ -109,15 +99,29 @@ class Generator {
     // Generate reference records and store in memory sink
     generateRefRecords() {
         console.log("Generating reference records");
-        for (let record in this.recordSchemas) {
-            if (record != "Master") {
-                this.refRecords[record] = new Sinks.memory();
-                for (let i = 0; i < this.recordSchemas[record].count; i++) {
-                    this.genFakeRecord([this.refRecords[record]], record);
-                }
-                console.log(this.refRecords[record].length() + " records generated for " + record);
+        for (let schema in this.recordSchemas) {
+            if (schema != "Master") {
+                this.generateRefRecordsForSchema(schema)
             }
         }
     }
+
+    generateRefRecordsForSchema(schema) {
+        this.refRecords[schema] = new Sinks.memory();
+        for (let i = 0; i < this.recordSchemas[schema].count; i++) {
+            this.genFakeRecord([this.refRecords[schema]], schema);
+        }
+        console.log(this.refRecords[schema].length() + " records generated for " + schema);
+    }
 }
-module.exports = { Generator }
+
+class RefDataGenerator {
+    static getInstance(options = null) {
+        if (RefDataGenerator.instance)
+            return RefDataGenerator.instance
+        else 
+            return RefDataGenerator.instance = new Generator(options)
+    }
+}
+
+module.exports = { Generator, RefDataGenerator }
