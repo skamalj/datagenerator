@@ -1,15 +1,34 @@
-Data generator based on [faker nodejs library](https://github.com/Marak/faker.js)
+# Fibber - Mock any API,  Generate Unlimited Fake Data
 
-This supports sending streaming fake data to:-
-* Socket
-* AWS Kinesis
-* Google Cloud PubSub
-* Azure Events Hub
-* Kafka on Confluent Cloud
-* File (Local or S3)
+* [Overview](#overview)
+* [install](#install)
+* [Sinks](#configure-sinks)
+* [Record Schema Configuration](#record-schema-configuration)
+  * [Master](#master-record)
+  * [Reference](#reference-records)
 
-One or more of these can be configured in ".env" environment file. Look at the sample file to configure properties for these.
+## Overview
+API Mocker and data generator is based on [faker nodejs library](https://fakerjs.dev/api/). 
+Data is generated in JSON format.  Required schema definition file maps record field to faker API method. This is then used by record generator to generate fake records and send to configured Sinks.
+Data can be streamed into destinations or batched into files.
 
+These featutres are supported:-
+* Mock any API - Support GET, DELETE, POST
+* Send fake data to:-
+  * Socket
+  * AWS Kinesis
+  * Google Cloud PubSub
+  * Azure Events Hub
+  * Kafka on Confluent Cloud
+  * File (Local or S3)
+
+
+## Install 
+Install dependencies (faker library must be installed as dev dependency)
+>`npm install`
+>`npm install --save-dev  @faker-js/faker`
+
+## Configure Sinks
 Runtime environment is set in `.env` file. Move sample.env file to .env and set the values as needed.
 * It allows you to enable multiple sinks at the same time if you want.
 * Read sample.env for details
@@ -18,14 +37,12 @@ Runtime environment is set in `.env` file. Move sample.env file to .env and set 
 * For Azure use `az login` 
 
 
-Install the dependencies (new faker library must be installed as dev dependency)
->`npm install`
->`npm install --save-dev  @faker-js/faker`
-
-## Record Configuration
+## Record Schema Configuration
 Record configuration is in schema file and uses YAML format. Default is schema/config.yaml.
+Each entry in config file denotes the field in the record and the Faker functions which needs to be called.
 
-Each entry in config file denotes the field in the record and the Faker functions which needs to be called. Its format is as below:-
+### Master Record
+Master record is the only record for which records are generated and sent to Sinks.
 ```
 records:
   - type: <Master>
@@ -38,7 +55,7 @@ records:
           magnitude: <Multiplier for the data>
           frequency: <%age of samles in which to introduce anomaly>
 ```
-### Using reference records
+### Reference Records
 
 If you need to generate data against fixed set of master records Ex. across 'X' number of customers 
 , buying 'Y' number of products in some quantities.  In this case 'Ref' records can be used for customers and Products, which can then be used to generate master transactions/records.
