@@ -7,7 +7,7 @@ const { Sinks } = require('./sinks.js');
 // If source failure probability is configured, then a process is started to simulate source failure
 // which disables randomly selected source.
 
-class Source {
+class SourcePrivate {
     constructor(options, enabledSinks) {
         this.options = options;
         this.enabledSinks = enabledSinks;
@@ -48,6 +48,11 @@ class Source {
             this.startSource(i);
         }
     }
+    stopAll() {
+        for (let i = 0; i < this.sources.length(); i++) {
+            this.stopSource(i);
+        }
+    }
     reStartAll() {
         for (let i = 0; i < this.sources.length(); i++) {
             this.stopSource(i);
@@ -75,16 +80,13 @@ class Source {
     // Get Running sources 
     // Can be used from management server to get running sources count
     getRunningSources() {
-        let runningSources = 0;
-        for (let i = 0; i < this.sources.length(); i++) {
-            if (this.sources.get(i).status == "Running") {
-                runningSources++;
-            }
-        }
-        return (runningSources.toString() + "\n");
+        return this
+                .sources
+                .get()
+                .map(source => source.status == "Running" ? source.data : null)
     }
     // List enabled sinks
-    listEnabledSinks() {
+    enabledSinksCount() {
         let enabledSinks = [];
         for (let i = 0; i < this.enabledSinks.length; i++) {
             enabledSinks.push(this.enabledSinks[i].constructor.name);
@@ -106,4 +108,14 @@ class Source {
         }
     }
 }
+
+class Source {
+    static getInstance(options = null, enabledSinks = null) {
+        if (Source.instance)
+            return Source.instance
+        else 
+            return Source.instance = new SourcePrivate(options, enabledSinks)
+    }
+}
+
 module.exports = { Source };

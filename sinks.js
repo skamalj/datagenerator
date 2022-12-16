@@ -98,7 +98,7 @@ Sinks.memory = class memory {
         this.#mem.push(rec)
     }
     get(i) {
-        return this.#mem[i]
+        return i != undefined ? this.#mem[i] : this.#mem
     }
     remove(i) {
         let rec = this.#mem.splice(i, 1);
@@ -107,9 +107,6 @@ Sinks.memory = class memory {
     }
     length() {
         return this.#mem.length
-    }
-    get() {
-        return this.#mem
     }
     checkIfColValueExists(colName, colValue) {
         return this.#mem.filter(rec => rec[colName] == colValue).length > 0

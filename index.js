@@ -3,7 +3,7 @@ const { Sinks } = require('./sinks.js');
 const { Source } = require('./source.js');
 const { program } = require('./argparser.js');
 const { RefDataGenerator } = require('./generator.js');
-const { createAPIMocker, createConfigManagerAPI } = require('./api.js')
+const { createAPIMocker, createConfigManagerAPI, createSourceAPI } = require('./api.js')
 const { SchemaManager } = require('./schema_manager')
 
 // Load generator environment. 
@@ -56,7 +56,9 @@ if (process.env.SINKS_FILE == "Y" || process.env.SINKS_FILE == "y") {
 
 
 // Create generators for sources 
-const sources = new Source(options, enabledSinks);
+const sources = Source.getInstance(options, enabledSinks);
+
+createSourceAPI()
 
 // Create data server for console sink
 const server = net.createServer({ allowHalfOpen: true }, (c) => {
@@ -80,68 +82,8 @@ server.on('error', (err) => {
     throw err;
 });
 
-// Create Management server
-// This can be used to add/remove sources and sinks(ToDo)
-const management_server = net.createServer({ allowHalfOpen: true }, (c) => {
-    c.on('end', () => {
-        console.log('Management client disconnected');
-    });
-    c.on('error', (err) => {
-        console.log("Management Server: " + err);
-    });
-    c.on('data', (cmd) => {
-        console.log("Management Server Recieved Commmand: " + cmd);
-        let words = cmd.toString().split(" ").filter(Boolean);
-        switch (words[0] ? words[0].trim() : "") {
-            case "source":
-                switch (words[1] ? words[1].trim() : "") {
-                    case "start":
-                        sources.startSource(parseInt(words[2]));
-                        break;
-                    case "stop":
-                        sources.stopSource(parseInt(words[2]));
-                        break;
-                    case "count":
-                        c.write(sources.getRunningSources());
-                        break;
-                    case "interval":
-                        sources.resetInterval(parseInt(words[2]));
-                        break;
-                    default:
-                        c.write("Usage : source start|stop|count <source number>. Recieved argument: " + words[1]);
-                        break;
-                }
-                break;
-            case "sink":
-                switch (words[1] ? words[1].trim() : "") {
-                    case "list":
-                        c.write(sources.listEnabledSinks());
-                        break;
-                    default:
-                        c.write("Usage : sink list. Recieved argument: " + words[1]);
-                        break;
-                }
-                break;
-            case "exit":
-                c.destroy();
-                break;
-            default:
-                c.write("Usage : source start|stop|count <source number>. Unknown command: " + words[0]);
-                break;
-        }
-
-    });
-});
-management_server.on('error', (err) => {
-    throw err;
-});
-
 // Data Server: Use the port from arguments or use default
 server.listen(options.port || process.env.PORT || 4000, () => {
     console.log('server bound');
 });
 
-// Management Server: Use the port from arguments or use default
-management_server.listen(options.management_port || process.env.MGMT_PORT || 4001, () => {
-    console.log('Management server bound');
-});

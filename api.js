@@ -2,15 +2,19 @@ const express = require('express')
 var bodyParser = require('body-parser')
 const { SchemaManager } = require('./schema_manager')
 const {RefDataGenerator } = require('./generator.js');
+const { Source } = require('./source.js');
 
 const app = express()
 var mockRouter = express.Router()
 var configRouter = express.Router()
+var sourceRouter = express.Router()
 app.use("/mock", mockRouter)
 app.use("/schema", configRouter)
+app.use("/source", sourceRouter)
 app.use((err, req, res, next) => {
     console.error(err)
     res.status(err.statusCode).send({
+        'req': req,
         'err': err.code,
         'message':err.message
     })
@@ -80,4 +84,43 @@ function createConfigManagerAPI() {
     })
 }
 
-module.exports = { createAPIMocker, createConfigManagerAPI };
+function createSourceAPI() {
+    const source = Source.getInstance()
+    sourceRouter.use(bodyParser.json())
+    sourceRouter.get('/',(req,res) => {
+        res.send(source.getRunningSources() )
+    })
+    sourceRouter.post('/interval/:interval',(req,res) => {
+        res.send(source.resetInterval(req.params.interval) )
+    })
+    sourceRouter.post('/:state', (req, res) => {
+            switch(req.params.state) {
+                case 'start':
+                    source.startAll()
+                    res.send()
+                    break;
+                case 'stop':
+                    source.stopAll()
+                    res.send()
+                    break;
+                default:
+                    res.status(404).send()
+            }
+    })
+    sourceRouter.post('/:state/:id', (req, res) => {
+        switch(req.params.state) {
+            case 'start':
+                source.startSource(req.params.id)
+                res.send()
+                break;
+            case 'stop':
+                source.stopSource(req.params.id)
+                res.send()
+                break;
+            default:
+                res.status(404).send()
+        }
+})
+}
+
+module.exports = { createAPIMocker, createConfigManagerAPI, createSourceAPI };
