@@ -3,18 +3,29 @@ var bodyParser = require('body-parser')
 const { SchemaManager } = require('./schema_manager')
 const {RefDataGenerator } = require('./generator.js');
 const { Source } = require('./source.js');
+const swaggerUi = require('swagger-ui-express');
+const fs = require('fs');
+const yaml = require('js-yaml');
+
+const swaggerDocument = yaml.load(fs.readFileSync('./swagger.json', 'utf8'));
 
 const app = express()
 var mockRouter = express.Router()
 var configRouter = express.Router()
 var sourceRouter = express.Router()
+const openapiRouter = express.Router();
+
+openapiRouter.use('/', swaggerUi.serve);
+openapiRouter.get('/', swaggerUi.setup(swaggerDocument));
+
 app.use("/mock", mockRouter)
 app.use("/schema", configRouter)
 app.use("/source", sourceRouter)
+app.use("/api-docs", openapiRouter)
+
 app.use((err, req, res, next) => {
     console.error(err)
     res.status(err.statusCode).send({
-        'req': req,
         'err': err.code,
         'message':err.message
     })

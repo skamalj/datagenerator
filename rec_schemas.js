@@ -6,6 +6,7 @@ const REF_SCHEMA = {
         "^[a-zA-Z]*$": {
             "type": "object",
             "required": ["count", "schema"],
+            "additionalProperties": false,
             "properties": {
                 "count": { "type": "integer" },
                 "schema": {

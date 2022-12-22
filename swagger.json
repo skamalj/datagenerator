@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: Fibber API - 1.0
+servers:
+  - url: "http://localhost:3000"
+tags:
+  - name: Source
+    description:  Configure sources for Fibber
+  - name: Schema
+    description:  Configure schemas for Fibber
+paths:
+  /source:
+    get:
+      tags:
+        - Source
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: array
+  /schema:
+    get:
+      tags:
+        - Schema
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+    post:
+      summary: Add new Ref schema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      tags:
+        - Schema
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+  /schema/{schema}:
+    get:
+      parameters:
+      - name: schema
+        in: path
+        description: Ref schema name
+        required: true
+        schema:
+          type: string
+      tags:
+        - Schema
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object

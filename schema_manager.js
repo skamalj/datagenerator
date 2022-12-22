@@ -56,7 +56,7 @@ class SchemaManagerPrivate {
             else
                 this.recordSchemas[schema] = record[schema]
         else
-            throw new InvalidRecordSchema(err)
+            throw new InvalidRecordSchema(err[0].message)
     }
 
     addSourceRecord(record) {
@@ -66,7 +66,7 @@ class SchemaManagerPrivate {
         if (err.length == 0)
             this.recordSchemas[schema] = record[schema]
         else
-            throw new InvalidRecordSchema(err)
+            throw new InvalidRecordSchema(err.message)
     }
 }
 

@@ -1,5 +1,3 @@
-const fs = require('fs');
-const yaml = require('js-yaml');
 const { Sinks } = require('./sinks.js');
 const { faker }= require('./faker.js');
 const { SchemaManager } = require('./schema_manager.js');
