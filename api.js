@@ -1,18 +1,20 @@
 const express = require('express')
 var bodyParser = require('body-parser')
 const { SchemaManager } = require('./schema_manager')
-const {RefDataGenerator } = require('./generator.js');
+const { RefDataGenerator } = require('./generator.js');
 const { Source } = require('./source.js');
+const { Distributor } = require('./distributor.js');
 const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const yaml = require('js-yaml');
 
-const swaggerDocument = yaml.load(fs.readFileSync('./swagger.json', 'utf8'));
+const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8'));
 
 const app = express()
 var mockRouter = express.Router()
 var configRouter = express.Router()
 var sourceRouter = express.Router()
+var sinkRouter = express.Router()
 const openapiRouter = express.Router();
 
 openapiRouter.use('/', swaggerUi.serve);
@@ -21,15 +23,16 @@ openapiRouter.get('/', swaggerUi.setup(swaggerDocument));
 app.use("/mock", mockRouter)
 app.use("/schema", configRouter)
 app.use("/source", sourceRouter)
+app.use("/sink", sinkRouter)
 app.use("/api-docs", openapiRouter)
 
 app.use((err, req, res, next) => {
     console.error(err)
     res.status(err.statusCode).send({
         'err': err.code,
-        'message':err.message
+        'message': err.message
     })
-  })
+})
 app.listen(3000, () => {
     console.log(`API Server listening on port 3000`)
 })
@@ -69,7 +72,7 @@ function createConfigManagerAPI() {
     const schemaManager = SchemaManager.getInstance()
     configRouter.use(bodyParser.json())
     configRouter.get('/:schema', (req, res) => {
-            res.send(schemaManager.getSchema(req.params.schema))
+        res.send(schemaManager.getSchema(req.params.schema))
     })
     configRouter.get('/', (req, res) => {
         res.send(schemaManager.getSchemas())
@@ -79,7 +82,7 @@ function createConfigManagerAPI() {
     })
     configRouter.post('/', (req, res) => {
         record = req.body
-        switch(Object.keys(record)[0]) {
+        switch (Object.keys(record)[0]) {
             case 'Source':
                 schemaManager.addSourceRecord(record)
                 break;
@@ -98,28 +101,28 @@ function createConfigManagerAPI() {
 function createSourceAPI() {
     const source = Source.getInstance()
     sourceRouter.use(bodyParser.json())
-    sourceRouter.get('/',(req,res) => {
-        res.send(source.getRunningSources() )
+    sourceRouter.get('/', (req, res) => {
+        res.send(source.getRunningSources())
     })
-    sourceRouter.post('/interval/:interval',(req,res) => {
-        res.send(source.resetInterval(req.params.interval) )
+    sourceRouter.post('/interval/:interval', (req, res) => {
+        res.send(source.resetInterval(req.params.interval))
     })
     sourceRouter.post('/:state', (req, res) => {
-            switch(req.params.state) {
-                case 'start':
-                    source.startAll()
-                    res.send()
-                    break;
-                case 'stop':
-                    source.stopAll()
-                    res.send()
-                    break;
-                default:
-                    res.status(404).send()
-            }
+        switch (req.params.state) {
+            case 'start':
+                source.startAll()
+                res.send()
+                break;
+            case 'stop':
+                source.stopAll()
+                res.send()
+                break;
+            default:
+                res.status(404).send()
+        }
     })
     sourceRouter.post('/:state/:id', (req, res) => {
-        switch(req.params.state) {
+        switch (req.params.state) {
             case 'start':
                 source.startSource(req.params.id)
                 res.send()
@@ -131,7 +134,17 @@ function createSourceAPI() {
             default:
                 res.status(404).send()
         }
-})
+    })
+}
+
+function createSinkAPI() {
+    sinkRouter.get('/', (req, res) => {
+        res.send(source.getSinks())
+    })
+    sinkRouter.post('/', (req, res) => {
+        res.send(Distributor.addSink(req.body))
+    })
+
 }
 
 module.exports = { createAPIMocker, createConfigManagerAPI, createSourceAPI };
