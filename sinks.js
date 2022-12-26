@@ -6,10 +6,10 @@ let Sinks = {}
 
 Sinks.pubsub = class pubsub {
     #pubsub;
-    constructor() {
+    constructor(config) {
         const { PubSub } = require('@google-cloud/pubsub');
-        this.projectId = process.env.PUBSUB_PROJECT_ID
-        this.topic = process.env.PUBSUB_TOPIC
+        this.projectId = config.project_id
+        this.topic = config.topic
         this.#pubsub = new PubSub({ projectId: this.projectId })
     }
     write(rec) {

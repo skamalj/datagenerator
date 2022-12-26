@@ -3,7 +3,7 @@ const { Sinks } = require('./sinks.js');
 const { Source } = require('./source.js');
 const { program } = require('./argparser.js');
 const { RefDataGenerator } = require('./generator.js');
-const { createAPIMocker, createConfigManagerAPI, createSourceAPI } = require('./api.js')
+const { createAPIMocker, createConfigManagerAPI, createSourceAPI, createSinkAPI } = require('./api.js')
 const { SchemaManager } = require('./schema_manager')
 
 // Load generator environment. 
@@ -22,6 +22,7 @@ const refDataGenerator = RefDataGenerator.getInstance(options);
 
 createAPIMocker(refDataGenerator.refRecords, refDataGenerator.recordSchemas, 3000)
 createConfigManagerAPI()
+createSinkAPI()
 
 // Store for record options defined in config
 var enabledSinks = [];

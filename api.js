@@ -138,8 +138,9 @@ function createSourceAPI() {
 }
 
 function createSinkAPI() {
+    sinkRouter.use(bodyParser.json())
     sinkRouter.get('/', (req, res) => {
-        res.send(source.getSinks())
+        res.send(Distributor.getSinks())
     })
     sinkRouter.post('/', (req, res) => {
         res.send(Distributor.addSink(req.body))
@@ -147,4 +148,4 @@ function createSinkAPI() {
 
 }
 
-module.exports = { createAPIMocker, createConfigManagerAPI, createSourceAPI };
+module.exports = { createAPIMocker, createConfigManagerAPI, createSourceAPI, createSinkAPI};

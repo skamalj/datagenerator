@@ -1,6 +1,6 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { SINK_SCHEMA } = require('./sink_schemas')
+const { SINK_SCHEMA } = require('./sink_schema')
 const { InvalidRecordSchema, SchemaNotFound } = require('./error_lib')
 const { Sinks } = require('./sinks.js');
 const Validator = require('jsonschema').Validator;
@@ -19,7 +19,7 @@ class Distributor {
         var sink = config
         var result = v.validate(config, SINK_SCHEMA, { nestedErrors: true })
         if (result.errors.length == 0) {
-            sink.instance = new (Sinks[sink.config.type])(sink.config)
+            sink.instance = new (Sinks[sink.config.type.toLowerCase()])(sink.config)
             Distributor.getEnabledSinks().push(sink);
         } else {
             throw new InvalidRecordSchema(result.toString())
@@ -38,11 +38,11 @@ class Distributor {
     }
 
     static getSinks() {
-        Distributor.getEnabledSinks()
+        return Distributor.getEnabledSinks()
             .map(sink => {
                 let r = {}
                 r.name = sink.name
-                r.type = sink.constructor.name
+                r.type = sink.instance.constructor.name
                 return r
             })
     }
@@ -56,7 +56,7 @@ class Distributor {
     static saveSinkConfigs(sinkConfigFile) {
         var yamldoc = yaml.dump(Distributor.getEnabledSinks()
             .map(sink => sink.config))
-        fs.writeFileSync(sinkConfigFile,yamldoc)
+        fs.writeFileSync(sinkConfigFile, yamldoc)
     }
 
 }

@@ -3,7 +3,7 @@ const SINK_SCHEMA = {
     "title": "Sink",
     "description": "A data sink for fibber",
     "type": "object",
-    "required": ["name", "sink"],
+    "required": ["name", "config"],
     "additionalProperties": false,
     "properties": {
         "name": {
@@ -22,11 +22,11 @@ const SINK_SCHEMA = {
     "$defs": {
         "pubsub": {
             "type": "object",
-            "required": ["type", "projectid", "topic"],
+            "required": ["type", "project_id", "topic"],
             "additionalProperties": false,
             "properties": {
                 "type": { "const": "PubSub" },
-                "projectid": { "type": "string" },
+                "project_id": { "type": "string" },
                 "topic": { "type": "string" }
             }
         },
@@ -88,9 +88,11 @@ const SINK_SCHEMA = {
 // const v = new Validator();
 // var instance = {
 //     "name": "sinkOne",
-//     "sink": {
+//     "config": {
 //         "type": "File",
 //         "destination": "S3"
 //     }
 // };
 // console.log(v.validate(instance, SINK_SCHEMA, {nestedErrors: true}).toString());
+
+module.exports = { SINK_SCHEMA }
