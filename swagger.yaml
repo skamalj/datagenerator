@@ -4,21 +4,93 @@ info:
 servers:
   - url: "http://localhost:3000"
 tags:
-  - name: Source
-    description:  Configure sources for Fibber
   - name: Schema
     description:  Configure schemas for Fibber
+  - name: Sink
+    description:  Configure sinks
+  - name: Source
+    description:  Manage Sources
 paths:
   /source:
     get:
+      summary: List all sources.  Id for sources is source position in array
       tags:
         - Source
+      responses:
+        '200':
+            description: Array of source objects
+            content:
+              application/json:
+                schema:
+                  type: array
+  /source/{status}:
+    get:
+      summary: Get all sources by state - Running or Stopped
+      parameters:
+      - name: status
+        in: path
+        description: Choose action from Running | Stopped
+        required: true
+        schema:
+          type: string
+          enum: 
+            - Running
+            - Stopped
+          default: Running
       responses:
         '200':
             content:
               application/json:
                 schema:
-                  type: array
+                  type: object   
+      tags:
+        - Source
+  /source/{action}:         
+    post:
+      summary: Start or Stop all sources
+      parameters:
+      - name: action
+        in: path
+        description: Choose action from start | stop
+        required: true
+        schema:
+          type: string
+          enum: 
+            - start
+            - stop
+          default: stop
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+      tags:
+        - Source
+  /source/{action}/{id}:
+    post:
+      summary: Start or Stop specific source
+      parameters:
+      - name: action
+        in: path
+        description: Choose action
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: Source ID
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+      tags:
+        - Source
   /schema:
     get:
       tags:
@@ -31,12 +103,31 @@ paths:
                   type: object
     post:
       summary: Add new Ref schema
+      description: 
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+            examples:
+              refschema:
+                summary: Example schema for ref rercords
+                value:
+                  store:
+                    name: store
+                    count: 8
+                    schema:
+                    - name: store_id
+                      namespace: datatype
+                      unique: true
+                      function: number
+                      args:
+                      - min: 1
+                        max: 10
+                    - name: city
+                      namespace: address
+                      function: city
       tags:
         - Schema
       responses:
@@ -56,6 +147,100 @@ paths:
           type: string
       tags:
         - Schema
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+    delete:
+      parameters:
+      - name: schema
+        in: path
+        description: Ref schema name
+        required: true
+        schema:
+          type: string
+      tags:
+        - Schema
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+  /sink:
+    get:
+      Summary: Get all configured sinks
+      tags:
+        - Sink
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+    post:
+      summary: Add new Sink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sink'
+            examples:
+              pubsubSink:
+                summary: Pubsub sink example
+                value: 
+                  name: "pubsub"
+                  config:
+                    type: "PubSub"
+                    projectId: "gcdeveloper"
+                    topic: "topic"
+              fileSink:
+                summary: File sink example
+                value:
+                  name: "filesink"
+                  config:
+                    type: "FileSink"
+                    baseName: "datagenfile"
+      tags:
+        - Sink
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+  /sink/{name}:
+    get:
+      summary: Get configured sink
+      tags:
+        - Sink
+      parameters:
+      - name: name
+        in: path
+        description: Sink name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
+    delete:
+      summary: Delete sink
+      tags:
+        - Sink
+      parameters:
+      - name: name
+        in: path
+        description: Sink name
+        required: true
+        schema:
+          type: string
       responses:
         '200':
             content:

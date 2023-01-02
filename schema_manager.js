@@ -4,6 +4,7 @@ const { SOURCE_SCHEMA, REF_SCHEMA } = require('./rec_schemas')
 const { InvalidRecordName, InvalidRecordSchema, SchemaNotFound } = require('./error_lib')
 const Validator = require('jsonschema').Validator;
 const v = new Validator();
+const {eventEmitter} = require('./eventhandler')
 
 class SchemaManagerPrivate {
 
@@ -35,8 +36,13 @@ class SchemaManagerPrivate {
 
     deleteSchema(schema) {
         if (this.recordSchemas[schema]) {
-            delete this.recordSchemas[schema]
-            return this.recordSchemas
+            if(schema != 'MASTER') {
+                delete this.recordSchemas[schema]
+                eventEmitter.emit('SCHEMA_DELETED',schema)
+                return this.recordSchemas
+            } else {
+                throw new Error('You can only update master record')
+            }
         }
         else
             throw new SchemaNotFound(`${schema} not found`)
@@ -53,8 +59,11 @@ class SchemaManagerPrivate {
         if (err.length == 0)
             if (schema.toUpperCase() == 'SOURCE' || schema.toUpperCase() == 'MASTER')
                 throw new InvalidRecordName('Ref record name cannot be Source or Master')
-            else
+            else {
                 this.recordSchemas[schema] = record[schema]
+                eventEmitter.emit('SCHEMA_ADDED',schema)
+                return this.recordSchemas
+            }
         else
             throw new InvalidRecordSchema(err[0].message)
     }
@@ -63,19 +72,22 @@ class SchemaManagerPrivate {
         var v = new Validator();
         var err = v.validate(record, SOURCE_SCHEMA).errors
         var schema = Object.keys[0]
-        if (err.length == 0)
+        if (err.length == 0){
             this.recordSchemas[schema] = record[schema]
+            eventEmitter.emit('SCHEMA_ADDED',schema)
+            return this.recordSchemas
+        }
         else
             throw new InvalidRecordSchema(err.message)
     }
 }
 
 class SchemaManager {
-    static getInstance(schemafile = null) {
+    static getInstance() {
         if (SchemaManager.instance)
             return SchemaManager.instance
         else
-            return SchemaManager.instance = new SchemaManagerPrivate(schemafile)
+            return SchemaManager.instance = new SchemaManagerPrivate(global.options.schemafile)
     }
 }
 

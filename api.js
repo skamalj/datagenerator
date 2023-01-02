@@ -1,16 +1,22 @@
 const express = require('express')
 var bodyParser = require('body-parser')
+const { httpLogger } = require('./logger')
 const { SchemaManager } = require('./schema_manager')
-const { RefDataGenerator } = require('./generator.js');
 const { Source } = require('./source.js');
 const { Distributor } = require('./distributor.js');
 const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const yaml = require('js-yaml');
+const {SINK_SCHEMA} = require('./openapi_sink_schema')
+const {eventEmitter} = require('./eventhandler')
+
 
 const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8'));
+swaggerDocument.components = {}
+swaggerDocument.components.schemas = SINK_SCHEMA.schemas
 
 const app = express()
+app.use(httpLogger)
 var mockRouter = express.Router()
 var configRouter = express.Router()
 var sourceRouter = express.Router()
@@ -29,7 +35,7 @@ app.use("/api-docs", openapiRouter)
 app.use((err, req, res, next) => {
     console.error(err)
     res.status(err.statusCode).send({
-        'err': err.code,
+        'err': 500,
         'message': err.message
     })
 })
@@ -37,7 +43,10 @@ app.listen(3000, () => {
     console.log(`API Server listening on port 3000`)
 })
 
-function createAPIMocker(refData, recordSchemas) {
+function createAPIMocker() {
+    console.log('Creating/Updating API Mocker)')
+    var refData = global.generator.getRefRecords()
+    var recordSchemas = global.schemaManager.getSchemas()
     mockRouter.use(bodyParser.json())
     for (let schema in recordSchemas) {
         if (schema != "Master" && schema != "Source") {
@@ -89,10 +98,7 @@ function createConfigManagerAPI() {
             case 'Master':
                 break;
             default:
-                var refDataGenerator = RefDataGenerator.getInstance()
                 schemaManager.addRefRecord(record)
-                refDataGenerator.generateRefRecordsForSchema(Object.keys(record)[0])
-                createAPIMocker(refDataGenerator.refRecords, refDataGenerator.recordSchemas)
         }
         res.send(schemaManager.getSchemas())
     })
@@ -102,13 +108,13 @@ function createSourceAPI() {
     const source = Source.getInstance()
     sourceRouter.use(bodyParser.json())
     sourceRouter.get('/', (req, res) => {
-        res.send(source.getRunningSources())
+        res.send(source.getSources())
     })
     sourceRouter.post('/interval/:interval', (req, res) => {
         res.send(source.resetInterval(req.params.interval))
     })
-    sourceRouter.post('/:state', (req, res) => {
-        switch (req.params.state) {
+    sourceRouter.post('/:action', (req, res) => {
+        switch (req.params.action) {
             case 'start':
                 source.startAll()
                 res.send()
@@ -121,15 +127,19 @@ function createSourceAPI() {
                 res.status(404).send()
         }
     })
-    sourceRouter.post('/:state/:id', (req, res) => {
-        switch (req.params.state) {
+    sourceRouter.get('/:state', (req, res) => {
+        res.send(source.getSources(req.params.state))
+    })
+    sourceRouter.post('/:action/:id', (req, res) => {
+        let s
+        switch (req.params.action) {
             case 'start':
-                source.startSource(req.params.id)
-                res.send()
+                s = source.startSource(req.params.id)
+                res.send(s)
                 break;
             case 'stop':
-                source.stopSource(req.params.id)
-                res.send()
+                s = source.stopSource(req.params.id)
+                res.send(s)
                 break;
             default:
                 res.status(404).send()
@@ -142,8 +152,22 @@ function createSinkAPI() {
     sinkRouter.get('/', (req, res) => {
         res.send(Distributor.getSinks())
     })
+    sinkRouter.get('/:name', (req, res) => {
+        let s = Distributor.getSink(req.params.name)
+        if (s)
+            res.send(s)
+        else 
+            res.status(404).send()
+    })
+    sinkRouter.delete('/:name', (req, res) => {
+        let s = Distributor.deleteSink(req.params.name)
+        if (s)
+            res.send(s)
+        else 
+            res.status(404).send()
+    })
     sinkRouter.post('/', (req, res) => {
-        res.send(Distributor.addSink(req.body))
+        res.send(Distributor.createSink(req.body))
     })
 
 }

@@ -1,6 +1,6 @@
-// import generator
-const { Generator, RefDataGenerator } = require('./generator.js');
 const { Sinks } = require('./sinks.js');
+const { Distributor } = require('./distributor')
+const { logger } = require('./logger')
 
 // This class creates a generator for a specific source
 // If no sources are provided, dummy single source is created
@@ -8,15 +8,15 @@ const { Sinks } = require('./sinks.js');
 // which disables randomly selected source.
 
 class SourcePrivate {
-    constructor(options, enabledSinks) {
+    constructor(options) {
         this.options = options;
-        this.enabledSinks = enabledSinks;
-        this.refDataGenerator = RefDataGenerator.getInstance();
-        this.sources = this.refDataGenerator.refRecords["Source"] ? this.refDataGenerator.refRecords["Source"] : new Sinks.memory();
+        var refRecords = global.generator.getRefRecords();
+        var recordSchemas = global.schemaManager.getSchemas();
+        this.sources = refRecords["Source"] ? refRecords["Source"] : new Sinks.memory();
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
         this.startAll();
-        if (this.refDataGenerator.recordSchemas["Source"] && this.refDataGenerator.recordSchemas["Source"].failure_simulation)
+        if (recordSchemas["Source"] && recordSchemas["Source"].failure_simulation)
             setInterval(() => this.randomlyRemoveSources(), this.interval);
     }
     // Move source attributes to 'data' field, so that we can add other attributes to source 
@@ -27,22 +27,24 @@ class SourcePrivate {
         }
         for (let i = 0; i < this.sources.length(); i++) {
             let o = {}
-            Object.assign(o, this.sources.get(i));
-            this.sources.get(i).data = o;
-            this.sources.get(i).status = "Stopped";
+            o.data = JSON.parse(JSON.stringify(this.sources.get(i)));            
+            o.status = "Stopped";
+            o.id = i;
+            (this.sources.get())[i] = JSON.parse(JSON.stringify(o));
         }
     }
     startSource(i) {
-        let generator = new Generator(this.options, this.refDataGenerator.refRecords, this.refDataGenerator.recordSchemas,
-            this.sources.get(i).data);
-        let intervalId = setInterval(() => generator.genFakeRecord(this.enabledSinks, "Master"), this.interval);
+        let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master", 
+                                                this.sources.get(i).data), this.interval);
         this.sources.get(i).intervalId = intervalId;
         this.sources.get(i).status = "Running";
         if (this.options.timeout)
             setTimeout(() => {
                 clearInterval(intervalId)
             }, parseInt(this.options.timeout) * 60 * 1000);
+        return this.sources.get(i)
     }
+
     startAll() {
         for (let i = 0; i < this.sources.length(); i++) {
             this.startSource(i);
@@ -68,7 +70,8 @@ class SourcePrivate {
     stopSource(i) {
         clearInterval(this.sources.get(i).intervalId);
         this.sources.get(i).status = "Stopped";
-        console.log("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
+        logger.log("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
+        return this.sources.get(i)
     }
     // Get random Integer between min and max
     getRandomInt(min, max) {
@@ -79,29 +82,26 @@ class SourcePrivate {
     }
     // Get Running sources 
     // Can be used from management server to get running sources count
-    getRunningSources() {
-        return this
+    getSources(state = null) {
+        let r = this
                 .sources
                 .get()
-                .map(source => source.status == "Running" ? source.data : null)
+                .filter(source => !(state) || source.status == state)
+                .map(source => { return {"id": source.id, "data": source.data, "status": source.status}})
+        return r
     }
-    // List enabled sinks
-    enabledSinksCount() {
-        let enabledSinks = [];
-        for (let i = 0; i < this.enabledSinks.length; i++) {
-            enabledSinks.push(this.enabledSinks[i].constructor.name);
-        }
-        return enabledSinks.toString() + "\n";
-    }
+
     // Simulate device/source failure
     randomlyRemoveSources() {
-        let removalProbability = this.refDataGenerator.recordSchemas["Source"].failure_simulation.probability ?
-            this.refDataGenerator.recordSchemas["Source"].failure_simulation.probability * 100.0 : 0;
-        let min_source_recs = this.refDataGenerator.recordSchemas["Source"].failure_simulation.min_source_recs ?
-            this.refDataGenerator.recordSchemas["Source"].failure_simulation.min_source_recs : this.sources.length();
+        var recordSchemas = global.schemaManager.getSchemas();
+        let removalProbability = recordSchemas["Source"].failure_simulation.probability ?
+            recordSchemas["Source"].failure_simulation.probability * 100.0 : 0;
+        let min_source_recs = recordSchemas["Source"].failure_simulation.min_source_recs ?
+            recordSchemas["Source"].failure_simulation.min_source_recs : this.sources.length();
         for (let i = 0; i < this.sources.length(); i++) {
+            var s = this.sources.get(i).status
             if (this.getRandomInt(1, 10001) <= removalProbability
-                && this.getRunningSources() > min_source_recs
+                && this.getSources().length > min_source_recs
                 && this.sources.get(i).status == "Running") {
                 this.stopSource(i);
             }
@@ -110,11 +110,11 @@ class SourcePrivate {
 }
 
 class Source {
-    static getInstance(options = null, enabledSinks = null) {
+    static getInstance(options = null) {
         if (Source.instance)
             return Source.instance
         else 
-            return Source.instance = new SourcePrivate(options, enabledSinks)
+            return Source.instance = new SourcePrivate(options)
     }
 }
 

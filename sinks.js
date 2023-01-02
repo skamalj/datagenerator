@@ -1,6 +1,4 @@
-const { S3 } = require('aws-sdk');
-const { env } = require('process');
-const { createInflate } = require('zlib');
+const { logger } = require('./logger')
 
 let Sinks = {}
 
@@ -8,7 +6,7 @@ Sinks.pubsub = class pubsub {
     #pubsub;
     constructor(config) {
         const { PubSub } = require('@google-cloud/pubsub');
-        this.projectId = config.project_id
+        this.projectId = config.projectId
         this.topic = config.topic
         this.#pubsub = new PubSub({ projectId: this.projectId })
     }
@@ -20,11 +18,11 @@ Sinks.pubsub = class pubsub {
                 ).then(res => {
                     if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
                         || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                        console.log("Message " + rec + " published with ID: " + res)
+                        logger.info("Message " + rec + " published with ID: " + res)
                 })
-                .catch(error => console.log("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error))
+                .catch(error => logger.info("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error))
         } catch (error) {
-            console.log("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error)
+            logger.info("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error)
         }
     }
 }
@@ -32,10 +30,10 @@ Sinks.pubsub = class pubsub {
 Sinks.kinesis = class kinesis {
     #kinesis;
     #streamname;
-    constructor() {
+    constructor(config) {
         const { KinesisClient } = require("@aws-sdk/client-kinesis");
-        this.#streamname = process.env.KINESIS_STREAM_NAME
-        this.#kinesis = new KinesisClient({ region: process.env.KINESIS_REGION });
+        this.#streamname = config.streamName
+        this.#kinesis = new KinesisClient({ region: config.region });
     }
     write(rec) {
         const {PutRecordCommand } = require("@aws-sdk/client-kinesis");
@@ -50,23 +48,23 @@ Sinks.kinesis = class kinesis {
             this.#kinesis.send(command).then((data) => {
                 if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
                     || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    console.log("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+                    logger.info("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
             })
                 .catch((error) => {
-                    console.log("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
+                    logger.info("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
                 });
         } catch (error) {
-            console.log("Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
+            logger.info("Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
         }
     }
 }
 
 Sinks.eventshub = class EventsHub {
     #producer;
-    constructor() {
+    constructor(config) {
         const { EventHubProducerClient } = require("@azure/event-hubs");
-        this.#producer = new EventHubProducerClient(process.env.EVENT_HUB_CONN_STRING,
-            process.env.EVENT_HUB_NAME);
+        this.#producer = new EventHubProducerClient(config.eventshubConnectionString,
+            config.eventshubName);
     }
     write(rec) {
         this.#producer.createBatch()
@@ -79,16 +77,16 @@ Sinks.eventshub = class EventsHub {
             .then(() => {
                 if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
                     || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    console.log("Message " + rec + " published to azure events hub");
+                    logger.info("Message " + rec + " published to azure events hub");
             })
             .catch((error) => {
-                console.log("Record --" + rec + "-- not published to azure events hub: " + error);
+                logger.info("Record --" + rec + "-- not published to azure events hub: " + error);
             })
 
     }
 }
 // In memory sink for storing REF records
-Sinks.memory = class memory {
+Sinks.memory = class memory {D
     #mem;
     #removed_recs = []
     constructor() {
@@ -103,7 +101,7 @@ Sinks.memory = class memory {
     remove(i) {
         let rec = this.#mem.splice(i, 1);
         this.#removed_recs.push(rec);
-        console.log(`Removed record:   ${JSON.stringify(rec)}, sink has now ${this.#mem.length} records`);
+        logger.info(`Removed record:   ${JSON.stringify(rec)}, sink has now ${this.#mem.length} records`);
     }
     length() {
         return this.#mem.length
@@ -145,18 +143,20 @@ Sinks.filesink = class FileSink {
     #no_of_files = 10
     #records_written = 0
     #files_written = 0
-    #enabledsinks
     #contents = ''
-    constructor(file_base_name, max_records = 50000, no_of_files = 10, enabledsinks) {
-        this.#file = file_base_name + '_0.json'
-        this.#basefilename = file_base_name
-        this.#max_records = max_records
-        this.#enabledsinks = enabledsinks
-        this.#no_of_files = no_of_files
+    #destination
+    #config
+    constructor(config) {
+        this.#file = config.baseName + '_0.json'
+        this.#basefilename = config.baseName
+        this.#max_records = config.batchSize ? config.batchSize : 5000
+        this.#no_of_files = config.numOfFiles ? config.numOfFiles : 1
+        this.#destination = config.destination ? config.destination : 'local'
+        this.#config = config
     }
     // Remove sink from array enabledsinks
     disable() {
-        this.#enabledsinks.splice(this.#enabledsinks.indexOf(this), 1)
+        this.status = "INACTIVE"
     }
 
     write(rec) {
@@ -181,7 +181,7 @@ Sinks.filesink = class FileSink {
         }
     }
     createFile(file, contents){
-        switch(process.env.FILE_SINK_TYPE) {
+        switch(this.#destination) {
             case 'S3':
                 this.pushToS3(file,contents)
                 break;
@@ -194,12 +194,12 @@ Sinks.filesink = class FileSink {
         var s3 = new S3Client();
         var params = {
             Body: Buffer.from(contents,"utf-8"), 
-            Bucket: env.S3_BUCKET_NAME, 
+            Bucket: this.#config.s3BucketName, 
             Key: file
            };
            s3.send(new PutObjectCommand(params), function(err, data) {
-             if (err) console.log(err, err.stack); 
-             else     console.log(`File ${file} pushed to S3`);        
+             if (err) logger.info(err, err.stack); 
+             else     logger.info(`File ${file} pushed to S3`);        
            });
     }
     createLocalFile(file, contents) {
@@ -207,13 +207,13 @@ Sinks.filesink = class FileSink {
         var data = Buffer.from(contents,'utf-8')
         fs.open(file,'a' , function(err, fd) {
             if (err) {
-                console.log(`Cannot open file ${file}`)
+                logger.info(`Cannot open file ${file}`)
             } else {
                 fs.write(fd,data, 0, data.lenght, null, function(err, byteswritten) {
                     if (err) { 
-                        console.log(`Cannot write to file ${file}: ${err}`)
+                        logger.info(`Cannot write to file ${file}: ${err}`)
                     } else {
-                        console.log(`File ${file} created`)
+                        logger.info(`File ${file} created`)
                     }
                 })
             }
@@ -225,35 +225,35 @@ Sinks.filesink = class FileSink {
 Sinks.kafka = class Kafka {
     #topic;
     #producer;
-    constructor() {
+    constructor(config) {
 
         const { Kafka } = require('kafkajs')
         const kafka = new Kafka({
             clientId: 'generator-app',
-            brokers: process.env.KAFKA_BROKERS.split(","),
+            brokers: config.brokers.split(","),
             connectionTimeout: 5000,
             authenticationTimeout: 5000,
             reauthenticationThreshold: 20000,
             ssl: true,
             sasl: {
                 mechanism: 'plain', 
-                username: process.env.KAFKA_USERNAME,
-                password: process.env.KAFKA_PASSWORD
+                username: config.saslUsername,
+                password: config.saslPassword
              },
         });
 
         this.#producer = kafka.producer()
-        this.#topic = process.env.KAFKA_TOPIC
+        this.#topic = config.topic
+        this.init()
     }
-    init(enabledsinks) {
-        console.log("Initializing kafka sink")
+    init() {
+        logger.info("Initializing kafka sink")
         this.#producer.connect()
         .then(() => {
-            enabledsinks.push(this)
-            console.log(`Kafka sink connected for topic ${this.#topic}`);
+            logger.info(`Kafka sink connected for topic ${this.#topic}`);
         })
         .catch((error) => {
-            console.log(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
+            logger.info(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
         })
     }
     write(rec) {
@@ -266,7 +266,7 @@ Sinks.kafka = class Kafka {
         })
         .then(() => {})
         .catch((error) => {
-            console.log(`Error sending record to kafka: ${error}`);
+            logger.info(`Error sending record to kafka: ${error}`);
         })
     }
 }

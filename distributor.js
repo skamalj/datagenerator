@@ -15,15 +15,30 @@ class Distributor {
             return Distributor.enabledSinks = []
     }
 
-    static addSink(config) {
+    static write(rec) {
+        Distributor
+        .getEnabledSinks()
+        .filter(s => !(s.instance.status && s.instance.status == 'INACTIVE'))
+        .forEach(sink => sink.instance.write(rec))
+    }
+
+    static createSink(config) {
         var sink = config
         var result = v.validate(config, SINK_SCHEMA, { nestedErrors: true })
         if (result.errors.length == 0) {
             sink.instance = new (Sinks[sink.config.type.toLowerCase()])(sink.config)
-            Distributor.getEnabledSinks().push(sink);
+            Distributor.addSink(sink.name, sink.instance, sink.config)
         } else {
             throw new InvalidRecordSchema(result.toString())
         }
+    }
+
+    static addSink(name, instance, config = null){
+        var sink = {}
+        sink.name = name
+        sink.config = config
+        sink.instance = instance
+        Distributor.getEnabledSinks().push(sink);
     }
 
     static getSink(sinkName) {
@@ -34,6 +49,12 @@ class Distributor {
     static deleteSink(sinkName) {
         var sinks = Distributor.getEnabledSinks()
         var i = sinks.findIndex(sink => sink.name == sinkName)
+        return sinks.splice(i, 1)
+    }
+
+    static deleteSinkWithInstance(instance) {
+        var sinks = Distributor.getEnabledSinks()
+        var i = sinks.findIndex(sink => sink.instance == instance)
         return sinks.splice(i, 1)
     }
 
@@ -50,7 +71,7 @@ class Distributor {
     static loadSinks(sinkConfigFile) {
         var contents = fs.readFileSync(sinkConfigFile, 'utf8');
         var sinkConfigs = yaml.load(contents);
-        sinkConfigs.map(c => Distributor.addSink(c))
+        sinkConfigs.map(c => Distributor.createSink(c))
     }
 
     static saveSinkConfigs(sinkConfigFile) {

@@ -1,31 +1,32 @@
 const SINK_SCHEMA = {
-    "$id": "generatorSink",
-    "title": "Sink",
-    "description": "A data sink for fibber",
-    "type": "object",
-    "required": ["name", "config"],
-    "additionalProperties": false,
-    "properties": {
-        "name": {
-            "description": "Unique sink name",
-            "type": "string"
+    "schemas": {
+        "sink": {
+            "tags": ["Sink"],
+            "type": "object",
+            "required": ["name", "config"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "description": "Unique sink name",
+                    "type": "string"
+                },
+                "config": {
+                    "oneOf": [
+                        { "$ref": "#/components/schemas/pubsub" },
+                        { "$ref": "#/components/schemas/kinesis" },
+                        { "$ref": "#/components/schemas/eventshub" },
+                        { "$ref": "#/components/schemas/file" },
+                    ]
+                }
+            }
         },
-        "config": {
-            "oneOf": [
-                { "$ref": "#/$defs/pubsub" },
-                { "$ref": "#/$defs/kinesis" },
-                { "$ref": "#/$defs/eventshub" },
-                { "$ref": "#/$defs/file" },
-            ]
-        }
-    },
-    "$defs": {
         "pubsub": {
+            "tags": ["Sink"],
             "type": "object",
             "required": ["type", "projectId", "topic"],
             "additionalProperties": false,
             "properties": {
-                "type": { "const": "PubSub" },
+                "type": { "type": "string", "enum": ["PubSub"], "default": "PubSub" },
                 "projectId": { "type": "string" },
                 "topic": { "type": "string" }
             }
@@ -68,18 +69,18 @@ const SINK_SCHEMA = {
             "additionalProperties": false,
             "properties": {
                 "type": { "const": "FileSink" },
-                "baseName": {"type": "string"},
+                "baseName": { "type": "string" },
                 "batchSize": { "type": "integer", "default": 5000 },
                 "numOfFiles": { "type": "integer", "default": 5 },
                 "destination": { "type": "string", "default": "Local" },
                 "s3BucketName": { "type": "string" },
             },
             "if": {
-                "properties": {"destination" : {"const": "S3"}},
+                "properties": { "destination": { "const": "S3" } },
                 "required": ["destination"]
             },
             "then": {
-                "required": ["type", "s3BucketName"],    
+                "required": ["type", "s3BucketName"],
             }
         }
     }

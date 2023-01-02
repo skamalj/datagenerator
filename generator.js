@@ -1,30 +1,26 @@
 const { Sinks } = require('./sinks.js');
 const { faker }= require('./faker.js');
-const { SchemaManager } = require('./schema_manager.js');
+const { logger } = require('./logger')
+const {eventEmitter} = require('./eventhandler')
 
 class Generator {
-    refRecords = {};
-    recordSchemas = {};
-    options;
-    source;
 
-    constructor(options, refRecords = null, recordSchemas = null, source = null) {
+    constructor(options) {
         this.options = options;
-        this.source = source;
-        if (recordSchemas && refRecords) {
-            this.recordSchemas = recordSchemas
-            this.refRecords = refRecords;
-        } else {
-            this.loadRecordConfig();
-            this.generateRefRecords();
-        }
+        this.refRecords = {};
+        this.generateRefRecords();
+        this.registerSchemaChangeListeners(eventEmitter)
+    }
+
+    getRefRecords() {
+        return this.refRecords
     }
 
     // Goes through options and generates a record based on faker functions
     // Then writes the record to the socket
-    genFakeRecord(sinks, schema) {
+    genFakeRecord(sinks, schema, source) {
         var record = {};
-        var recordSchema = this.recordSchemas[schema];
+        var recordSchema = (global.schemaManager.getSchemas())[schema];
         var discardRecord = false;
         try {
             for (let col of recordSchema.schema) {
@@ -33,7 +29,7 @@ class Generator {
                     if (schema != "Master" && col.hasOwnProperty("unique") && col.unique) {
                         if (sinks[0].checkIfColValueExists(col.name, record[col.name])) {
                             discardRecord = true;
-                            console.log("Discarding ref record due to unique constraint violation - " + JSON.stringify(record));
+                            logger.info("Discarding ref record due to unique constraint violation - " + JSON.stringify(record));
                         }
                     }
                     if (col.hasOwnProperty("anomaly") && this.getRandomInt(1, 101) <= col.anomaly.frequency) {
@@ -46,14 +42,13 @@ class Generator {
             if (schema == "Master") {
                 if (!this.options.noeventtime)
                     record["eventtime"] = Date.now();
-                if (this.source && Object.keys(this.source).length > 0)
-                    record["source"] = this.source;
+                if (source && Object.keys(source).length > 0)
+                    record["source"] = source;
                 if (this.options.csv) record = this.convertToCSV(record)
             }
             if (!discardRecord) sinks.map(s => s.write(record))
-            //sink.write(JSON.stringify(record));
         } catch (error) {
-            console.log("Exception when writing record to client:" + error)
+            logger.info("Exception when writing record to client:" + error)
         }
     }
 
@@ -83,21 +78,12 @@ class Generator {
         //The maximum is exclusive and the minimum is inclusive
         return Math.floor(Math.random() * (max - min)) + min;
     }
-    // Load record config from provided schema file or from default schema file
-    loadRecordConfig() {
-        let schemafile = this.options.schemafile ? this.options.schemafile : "./schema/config.yaml";
-        try {
-            var schema_manager = SchemaManager.getInstance(schemafile)
-            this.recordSchemas =  schema_manager.getSchemas()
-        } catch (err) {
-            console.error(err);
-        }
-    }
 
     // Generate reference records and store in memory sink
     generateRefRecords() {
-        console.log("Generating reference records");
-        for (let schema in this.recordSchemas) {
+        logger.info("Generating reference records");
+        var recordSchemas = global.schemaManager.getSchemas();
+        for (let schema in recordSchemas) {
             if (schema != "Master") {
                 this.generateRefRecordsForSchema(schema)
             }
@@ -105,21 +91,34 @@ class Generator {
     }
 
     generateRefRecordsForSchema(schema) {
+        var recordSchemas = global.schemaManager.getSchemas();
         this.refRecords[schema] = new Sinks.memory();
-        for (let i = 0; i < this.recordSchemas[schema].count; i++) {
+        for (let i = 0; i < recordSchemas[schema].count; i++) {
             this.genFakeRecord([this.refRecords[schema]], schema);
         }
-        console.log(this.refRecords[schema].length() + " records generated for " + schema);
+        logger.info(this.refRecords[schema].length() + " records generated for " + schema);
     }
+
+    registerSchemaChangeListeners(e) {
+        e.on('SCHEMA_ADDED', schema => {
+            if(schema != 'MASTER') setImmediate(() => {
+                this.generateRefRecordsForSchema(schema)
+            })
+        });
+        e.on('SCHEMA_DELETED', schema => {
+            if(schema != 'MASTER') delete this.refRecords[schema]
+        });
+    }
+    
 }
 
-class RefDataGenerator {
-    static getInstance(options = null) {
-        if (RefDataGenerator.instance)
-            return RefDataGenerator.instance
+class DataGenerator {
+    static getInstance() {
+        if (DataGenerator.instance)
+            return DataGenerator.instance
         else 
-            return RefDataGenerator.instance = new Generator(options)
+            return DataGenerator.instance = new Generator(global.options)
     }
 }
 
-module.exports = { Generator, RefDataGenerator }
+module.exports = { Generator, DataGenerator }

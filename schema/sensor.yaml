@@ -2,7 +2,7 @@ records:
   - type: Source
     count: 150
     failure_simulation:
-      probability: 0.1
+      probability: 10
       min_source_recs: 25
     schema:
       - name: device_id
