@@ -70,7 +70,7 @@ class SourcePrivate {
     stopSource(i) {
         clearInterval(this.sources.get(i).intervalId);
         this.sources.get(i).status = "Stopped";
-        logger.log("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
+        logger.info("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
         return this.sources.get(i)
     }
     // Get random Integer between min and max
