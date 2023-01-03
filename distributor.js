@@ -47,9 +47,13 @@ class Distributor {
     }
 
     static deleteSink(sinkName) {
-        var sinks = Distributor.getEnabledSinks()
-        var i = sinks.findIndex(sink => sink.name == sinkName)
-        return sinks.splice(i, 1)
+        var found = this.getSink(sinkName)
+        if (found) {
+            var sinks = Distributor.getEnabledSinks()
+            var i = sinks.findIndex(sink => sink.name == sinkName)
+            return sinks.splice(i, 1)
+        } else 
+            return found
     }
 
     static deleteSinkWithInstance(instance) {

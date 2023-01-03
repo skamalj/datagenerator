@@ -13,7 +13,7 @@ tags:
 paths:
   /source:
     get:
-      summary: List all sources.  Id for sources is source position in array
+      summary: List all sources. Id for sources is source position in array
       tags:
         - Source
       responses:
@@ -93,6 +93,7 @@ paths:
         - Source
   /schema:
     get:
+      summary: Get list of all schemas - Ref, Source, Master
       tags:
         - Schema
       responses:
@@ -102,8 +103,7 @@ paths:
                 schema:
                   type: object
     post:
-      summary: Add new Ref schema
-      description: 
+      summary: Add new schema
       requestBody:
         required: true
         content:
@@ -138,6 +138,7 @@ paths:
                   type: object
   /schema/{schema}:
     get:
+      summary: Get schema by name
       parameters:
       - name: schema
         in: path
@@ -154,6 +155,7 @@ paths:
                 schema:
                   type: object
     delete:
+      summary: Delete schema
       parameters:
       - name: schema
         in: path
@@ -197,6 +199,18 @@ paths:
                     type: "PubSub"
                     projectId: "gcdeveloper"
                     topic: "topic"
+              fileSinkS3:
+                summary: File sink example for S3
+                value: 
+                  name: s3sink
+                  config:
+                    type: FileSink
+                    baseName: newgen/basename 
+                    batchSize: 5000
+                    numOfFiles: 10 
+                    destination: S3
+                    s3BucketName: skamalj-s3
+
               fileSink:
                 summary: File sink example
                 value:

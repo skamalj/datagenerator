@@ -16,13 +16,11 @@ Sinks.pubsub = class pubsub {
                 .publishMessage(
                     { data: Buffer.from(JSON.stringify(rec)) }
                 ).then(res => {
-                    if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
-                        || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                        logger.info("Message " + rec + " published with ID: " + res)
+                    logger.debug("Message " + rec + " published with ID: " + res)
                 })
-                .catch(error => logger.info("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error))
+                .catch(error => logger.error("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error))
         } catch (error) {
-            logger.info("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error)
+            logger.error("Rec --" + JSON.stringify(rec) + "-- not published to Pubsub" + error)
         }
     }
 }
@@ -46,15 +44,13 @@ Sinks.kinesis = class kinesis {
             };
             const command = new PutRecordCommand(params);
             this.#kinesis.send(command).then((data) => {
-                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
-                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    logger.info("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+                    logger.debug("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
             })
                 .catch((error) => {
-                    logger.info("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
+                    logger.error("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
                 });
         } catch (error) {
-            logger.info("Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
+            logger.error("Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
         }
     }
 }
@@ -75,12 +71,10 @@ Sinks.eventshub = class EventsHub {
                     throw new Error("Record --" + rec + "-- not added to batch")
             })
             .then(() => {
-                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
-                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    logger.info("Message " + rec + " published to azure events hub");
+                logger.debug("Message " + rec + " published to azure events hub");
             })
             .catch((error) => {
-                logger.info("Record --" + rec + "-- not published to azure events hub: " + error);
+                logger.error("Record --" + rec + "-- not published to azure events hub: " + error);
             })
 
     }
@@ -198,7 +192,7 @@ Sinks.filesink = class FileSink {
             Key: file
            };
            s3.send(new PutObjectCommand(params), function(err, data) {
-             if (err) logger.info(err, err.stack); 
+             if (err) logger.error(err, err.stack); 
              else     logger.info(`File ${file} pushed to S3`);        
            });
     }
@@ -211,7 +205,7 @@ Sinks.filesink = class FileSink {
             } else {
                 fs.write(fd,data, 0, data.lenght, null, function(err, byteswritten) {
                     if (err) { 
-                        logger.info(`Cannot write to file ${file}: ${err}`)
+                        logger.error(`Cannot write to file ${file}: ${err}`)
                     } else {
                         logger.info(`File ${file} created`)
                     }
@@ -253,7 +247,7 @@ Sinks.kafka = class Kafka {
             logger.info(`Kafka sink connected for topic ${this.#topic}`);
         })
         .catch((error) => {
-            logger.info(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
+            logger.error(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
         })
     }
     write(rec) {
@@ -264,9 +258,11 @@ Sinks.kafka = class Kafka {
             ],
             acks: 0
         })
-        .then(() => {})
+        .then(() => {
+            logger.debug("Message " + rec + " published to kafka");
+        })
         .catch((error) => {
-            logger.info(`Error sending record to kafka: ${error}`);
+            logger.error(`Error sending record to kafka: ${error}`);
         })
     }
 }

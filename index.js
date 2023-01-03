@@ -8,9 +8,6 @@ const { Distributor } = require('./distributor.js');
 const { logger } = require('./logger')
 const { SchemaManager} = require('./schema_manager')
 
-// Load generator environment. 
-// Read here - https://github.com/motdotla/dotenv
-require('dotenv').config()
 //Make options available globally
 global.options = options
 logger.info(options)
