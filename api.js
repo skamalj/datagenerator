@@ -35,11 +35,11 @@ app.use("/api-docs", openapiRouter)
 app.use((err, req, res, next) => {
     console.error(err)
     res.status(err.statusCode).send({
-        'err': 500,
+        'err': err.statusCode,
         'message': err.message
     })
 })
-app.listen(3000, () => {
+app.listen(global.options.apiPort, () => {
     console.log(`API Server listening on port 3000`)
 })
 
@@ -168,6 +168,19 @@ function createSinkAPI() {
     })
     sinkRouter.post('/', (req, res) => {
         res.send(Distributor.createSink(req.body))
+    })
+    sinkRouter.post('/:action', (req, res) => {
+        switch (req.params.action) {
+            case 'load':
+                res.send(Distributor.loadSinks())
+                break;
+            case 'save':
+                res.send(Distributor.saveSinks())
+                break;
+            default:
+                res.status(404).send()
+        }
+                
     })
 
 }

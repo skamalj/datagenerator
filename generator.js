@@ -48,7 +48,7 @@ class Generator {
             }
             if (!discardRecord) sinks.map(s => s.write(record))
         } catch (error) {
-            logger.info("Exception when writing record to client:" + error)
+            logger.error("Exception when writing record to client: " + error)
         }
     }
 

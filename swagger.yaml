@@ -230,6 +230,28 @@ paths:
               application/json:
                 schema:
                   type: object
+  /sink/{action}:
+    post:
+      summary: Load or Save sinks
+      tags:
+        - Sink
+      parameters:
+      - name: action
+        in: path
+        description: Sink action
+        required: true
+        schema:
+          type: string
+          enum:
+            - load
+            - save
+          default: save
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
     delete:
       summary: Delete sink
       tags:

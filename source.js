@@ -1,6 +1,7 @@
 const { Sinks } = require('./sinks.js');
 const { Distributor } = require('./distributor')
 const { logger } = require('./logger')
+const { NotFound} = require('./error_lib')
 
 // This class creates a generator for a specific source
 // If no sources are provided, dummy single source is created
@@ -35,14 +36,15 @@ class SourcePrivate {
     }
     startSource(i) {
         let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master", 
-                                                this.sources.get(i).data), this.interval);
-        this.sources.get(i).intervalId = intervalId;
-        this.sources.get(i).status = "Running";
+                                this.getSource(i).data), this.interval);
+        this.getSource(i).intervalId = intervalId;
+        this.getSource(i).status = "Running";
         if (this.options.timeout)
             setTimeout(() => {
                 clearInterval(intervalId)
             }, parseInt(this.options.timeout) * 60 * 1000);
-        return this.sources.get(i)
+        var source = this.getSource(i)
+        return  {"id": source.id, "data": source.data, "status": source.status} 
     }
 
     startAll() {
@@ -68,10 +70,11 @@ class SourcePrivate {
     }
     // This function can be used from management server to stop a source
     stopSource(i) {
-        clearInterval(this.sources.get(i).intervalId);
-        this.sources.get(i).status = "Stopped";
-        logger.info("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
-        return this.sources.get(i)
+        clearInterval(this.getSource(i).intervalId);
+        this.getSource(i).status = "Stopped";
+        logger.info("Stopped source: " + JSON.stringify(this.getSource(i).data) + " at index " + i);
+        var source =  this.getSource(i)
+        return  {"id": source.id, "data": source.data, "status": source.status} 
     }
     // Get random Integer between min and max
     getRandomInt(min, max) {
@@ -79,6 +82,14 @@ class SourcePrivate {
         max = Math.floor(max);
         //The maximum is exclusive and the minimum is inclusive
         return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    getSource(i) {
+        var source = this.sources.get(i)
+        if (source) 
+            return source
+        else 
+            throw new NotFound(`Source ${i} not found`)
     }
     // Get Running sources 
     // Can be used from management server to get running sources count
@@ -102,7 +113,7 @@ class SourcePrivate {
             var s = this.sources.get(i).status
             if (this.getRandomInt(1, 10001) <= removalProbability
                 && this.getSources().length > min_source_recs
-                && this.sources.get(i).status == "Running") {
+                && this.getSource(i).status == "Running") {
                 this.stopSource(i);
             }
         }

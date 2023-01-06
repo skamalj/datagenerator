@@ -1,8 +1,9 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
 const { SINK_SCHEMA } = require('./sink_schema')
-const { InvalidRecordSchema, SchemaNotFound } = require('./error_lib')
+const { InvalidRecordSchema, SchemaNotFound, AlreadyExists } = require('./error_lib')
 const { Sinks } = require('./sinks.js');
+const { logger } = require('./logger');
 const Validator = require('jsonschema').Validator;
 const v = new Validator();
 
@@ -17,9 +18,9 @@ class Distributor {
 
     static write(rec) {
         Distributor
-        .getEnabledSinks()
-        .filter(s => !(s.instance.status && s.instance.status == 'INACTIVE'))
-        .forEach(sink => sink.instance.write(rec))
+            .getEnabledSinks()
+            .filter(s => !(s.instance.status && s.instance.status == 'INACTIVE'))
+            .forEach(sink => sink.instance.write(rec))
     }
 
     static createSink(config) {
@@ -33,12 +34,16 @@ class Distributor {
         }
     }
 
-    static addSink(name, instance, config = null){
-        var sink = {}
-        sink.name = name
-        sink.config = config
-        sink.instance = instance
-        Distributor.getEnabledSinks().push(sink);
+    static addSink(name, instance, config = null) {
+        if (Distributor.getSink(name)) {
+            throw new AlreadyExists(`Sink ${name} already exists`)
+        } else {
+            var sink = {}
+            sink.name = name
+            sink.config = config
+            sink.instance = instance
+            Distributor.getEnabledSinks().push(sink);
+        }
     }
 
     static getSink(sinkName) {
@@ -68,16 +73,26 @@ class Distributor {
             })
     }
 
-    static loadSinks(sinkConfigFile) {
-        var contents = fs.readFileSync(sinkConfigFile, 'utf8');
-        var sinkConfigs = yaml.load(contents);
-        sinkConfigs.map(c => Distributor.createSink(c))
+    static loadSinks() {
+        try {
+            var file_options = {
+                encoding: 'utf8',
+                flag: 'a+'
+            }
+            var contents = fs.readFileSync(global.options.sinkConfig, file_options);
+            var sinkConfigs = yaml.load(contents);
+            return sinkConfigs ? sinkConfigs.map(c => Distributor.createSink(c)) : []
+        } catch (err) {
+            logger.error(`Cannot load sinks from ${global.options.sinkConfig}: ${err}`)
+        }
     }
 
-    static saveSinkConfigs(sinkConfigFile) {
+    static saveSinks() {
         var yamldoc = yaml.dump(Distributor.getEnabledSinks()
-            .map(sink => sink.config))
-        fs.writeFileSync(sinkConfigFile, yamldoc)
+            .map(sink => {
+                return { "name": sink.name, "config": sink.config }
+            }))
+        fs.writeFileSync(global.options.sinkConfig, yamldoc)
     }
 
 }
