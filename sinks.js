@@ -44,7 +44,9 @@ Sinks.kinesis = class kinesis {
             };
             const command = new PutRecordCommand(params);
             this.#kinesis.send(command).then((data) => {
-                logger.debug("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
+                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
+                    logger.info("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
             })
                 .catch((error) => {
                     logger.error("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
@@ -71,12 +73,10 @@ Sinks.eventshub = class EventsHub {
                     throw new Error("Record --" + rec + "-- not added to batch")
             })
             .then(() => {
-                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
-                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    logger.info("Message " + rec + " published to azure events hub");
+                logger.debug("Message " + rec + " published to azure events hub");
             })
             .catch((error) => {
-                logger.info("Record --" + rec + "-- not published to azure events hub: " + error);
+                logger.error("Record --" + rec + "-- not published to azure events hub: " + error);
             })
 
     }
@@ -249,7 +249,7 @@ Sinks.kafka = class Kafka {
             logger.info(`Kafka sink connected for topic ${this.#topic}`);
         })
         .catch((error) => {
-            logger.info(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
+            logger.error(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
         })
     }
     write(rec) {
@@ -260,9 +260,11 @@ Sinks.kafka = class Kafka {
             ],
             acks: 0
         })
-        .then(() => {})
+        .then(() => {
+            logger.debug("Message " + rec + " published to kafka");
+        })
         .catch((error) => {
-            logger.info(`Error sending record to kafka: ${error}`);
+            logger.error(`Error sending record to kafka: ${error}`);
         })
     }
 }
