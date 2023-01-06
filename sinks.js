@@ -44,9 +44,11 @@ Sinks.kinesis = class kinesis {
             };
             const command = new PutRecordCommand(params);
             this.#kinesis.send(command).then((data) => {
-                if (!(process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'Y'
-                    || process.env.SUPPRESS_SUCCESS_MESSAGE_LOG == 'y'))
-                    logger.info("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+<<<<<<< HEAD
+                logger.debug("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+=======
+                    logger.debug("Message " + rec + " published to kinesis with result: " + JSON.stringify(data));
+>>>>>>> 06be8c9d888610748f784f0b05a977030cce25b6
             })
                 .catch((error) => {
                     logger.error("Promise Error: Rec --" + JSON.stringify(rec) + "-- not published to kinesis " + error);
