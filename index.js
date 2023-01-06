@@ -1,5 +1,8 @@
 const net = require('net');
+//Make options available globally
 const { options } = require('./argparser.js');
+global.options = options
+
 const { Sinks } = require('./sinks.js');
 const { Source } = require('./source.js');
 const { DataGenerator } = require('./generator.js');
@@ -11,8 +14,7 @@ const { SchemaManager} = require('./schema_manager')
 // Load generator environment. 
 // Read here - https://github.com/motdotla/dotenv
 require('dotenv').config()
-//Make options available globally
-global.options = options
+
 logger.info(options)
 
 // This is implemented as singleton, so create it once and making it available globally.
@@ -29,6 +31,7 @@ createSinkAPI()
 
 // Create generators for sources 
 const sources = Source.getInstance(options);
+Distributor.loadSinks()
 
 createSourceAPI()
 
