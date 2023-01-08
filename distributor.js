@@ -1,7 +1,7 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { SINK_SCHEMA } = require('./sink_schema')
-const { InvalidRecordSchema, SchemaNotFound, AlreadyExists } = require('./error_lib')
+const { SINK_SCHEMA } = require('./resources/schemas/sink_schema')
+const { InvalidRecordSchema, AlreadyExists } = require('./error_lib')
 const { Sinks } = require('./sinks.js');
 const { logger } = require('./logger');
 const Validator = require('jsonschema').Validator;

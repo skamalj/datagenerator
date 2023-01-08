@@ -1,6 +1,6 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { SOURCE_SCHEMA, REF_SCHEMA } = require('./rec_schemas')
+const { SOURCE_SCHEMA, REF_SCHEMA } = require('./resources/schemas/rec_schemas')
 const { InvalidRecordName, InvalidRecordSchema, SchemaNotFound } = require('./error_lib')
 const Validator = require('jsonschema').Validator;
 const v = new Validator();

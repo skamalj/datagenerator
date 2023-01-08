@@ -3,48 +3,47 @@ const { Distributor } = require('./distributor')
 const { logger } = require('./logger')
 const { NotFound} = require('./error_lib')
 
-// This class creates a generator for a specific source
-// If no sources are provided, dummy single source is created
-// If source failure probability is configured, then a process is started to simulate source failure
-// which disables randomly selected source.
+// This class generates data for a given source. It uses global Generator instance 
+// to create data records.
 
 class SourcePrivate {
     constructor(options) {
         this.options = options;
         var refRecords = global.generator.getRefRecords();
         var recordSchemas = global.schemaManager.getSchemas();
-        this.sources = refRecords["Source"] ? refRecords["Source"] : new Sinks.memory();
+        this.sourceData = refRecords["Source"] ? refRecords["Source"] : new Sinks.memory();
+        this.sources = new Sinks.memory();
+        this.sourceIntervalIds = {}
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
         this.startAll();
         if (recordSchemas["Source"] && recordSchemas["Source"].failure_simulation)
             setInterval(() => this.randomlyRemoveSources(), this.interval);
     }
-    // Move source attributes to 'data' field, so that we can add other attributes to source 
-    // like status and processID
+    // This creates source objects (data, status and id) from source data records
     initialize() {
-        if (this.sources.length() == 0) {
-            this.sources.write({});
+        if (this.sourceData.length() == 0) {
+            this.sourceData.write({});
         }
-        for (let i = 0; i < this.sources.length(); i++) {
+        for (let i = 0; i < this.sourceData.length(); i++) {
             let o = {}
-            o.data = JSON.parse(JSON.stringify(this.sources.get(i)));            
+            o.data = {...this.sourceData.get(i)};            
             o.status = "Stopped";
             o.id = i;
-            (this.sources.get())[i] = JSON.parse(JSON.stringify(o));
+            this.sources.write(o)
         }
     }
     startSource(i) {
         let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master", 
                                 this.getSource(i).data), this.interval);
-        this.getSource(i).intervalId = intervalId;
+        this.sourceIntervalIds.i = intervalId;
         this.getSource(i).status = "Running";
         if (this.options.timeout)
             setTimeout(() => {
                 clearInterval(intervalId)
             }, parseInt(this.options.timeout) * 60 * 1000);
         var source = this.getSource(i)
-        return  {"id": source.id, "data": source.data, "status": source.status} 
+        return source
     }
 
     startAll() {
@@ -63,20 +62,20 @@ class SourcePrivate {
             this.startSource(i);
         }
     }
-    // Reset interval and restart all sources
+    
     resetInterval(interval) {
         this.interval = interval;
         this.reStartAll();
     }
-    // This function can be used from management server to stop a source
+
     stopSource(i) {
-        clearInterval(this.getSource(i).intervalId);
+        clearInterval(this.sourceIntervalIds.i.intervalId);
         this.getSource(i).status = "Stopped";
         logger.info("Stopped source: " + JSON.stringify(this.getSource(i).data) + " at index " + i);
         var source =  this.getSource(i)
-        return  {"id": source.id, "data": source.data, "status": source.status} 
+        return  source
     }
-    // Get random Integer between min and max
+    // Get random Integer between min and max. This is used to randomly stop sources, if enabled
     getRandomInt(min, max) {
         min = Math.ceil(min);
         max = Math.floor(max);
@@ -91,14 +90,12 @@ class SourcePrivate {
         else 
             throw new NotFound(`Source ${i} not found`)
     }
-    // Get Running sources 
-    // Can be used from management server to get running sources count
+    
     getSources(state = null) {
         let r = this
                 .sources
                 .get()
                 .filter(source => !(state) || source.status == state)
-                .map(source => { return {"id": source.id, "data": source.data, "status": source.status}})
         return r
     }
 

@@ -10,7 +10,7 @@ const options = parser
   .option('-a, --api-port <port>', 'Specify port for api server', 3000)
   .option('-c, --csv', 'Create csv formatted records')
   .option('-d, --debug', 'Enable debug')
-  .option('-s, --schemafile <schemafile>', 'Specify schema config file', "./schema/config.yaml")
+  .option('-s, --schemafile <schemafile>', 'Specify schema config file', "resources/generator/config.yaml")
   .option('-k, --sink-config <file>', 'Specify sink config file','resources/config/sink.yaml')
   .parse(process.argv)
   .opts()

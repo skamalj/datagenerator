@@ -77,6 +77,10 @@ paths:
         required: true
         schema:
           type: string
+          enum: 
+            - start
+            - stop
+          default: stop
       - name: id
         in: path
         description: Source ID
@@ -244,6 +248,23 @@ paths:
               application/json:
                 schema:
                   type: object
+    delete:
+      summary: Delete sink
+      tags:
+        - Sink
+      parameters:
+      - name: name
+        in: path
+        description: Sink name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+            content:
+              application/json:
+                schema:
+                  type: object
   /sink/{action}:
     post:
       summary: Load or Save sinks
@@ -260,23 +281,6 @@ paths:
             - load
             - save
           default: save
-      responses:
-        '200':
-            content:
-              application/json:
-                schema:
-                  type: object
-    delete:
-      summary: Delete sink
-      tags:
-        - Sink
-      parameters:
-      - name: name
-        in: path
-        description: Sink name
-        required: true
-        schema:
-          type: string
       responses:
         '200':
             content:
