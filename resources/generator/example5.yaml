@@ -1,14 +1,14 @@
 store:
   name: store
-  count: 8
   schema:
     - name: store_id
       namespace: datatype
       unique: true
       function: number
+      count: 3
       args:
         - min: 1
-          max: 10
+          max: 100
     - name: city
       namespace: address
       function: city
@@ -38,6 +38,7 @@ Master:
     - name: product
       namespace: ref
       function: product
+      count: 3
     - name: quantity
       namespace: datatype
       function: number

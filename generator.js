@@ -25,19 +25,15 @@ class Generator {
         try {
             for (let col of recordSchema.schema) {
                 if (col.namespace != "ref") {
-                    record[col.name] = faker[col.namespace][col.function].apply(null, this.createArgsArray(col.args));
+                    record[col.name] = this.assignFakerColValue(col)
                     if (schema != "Master" && col.hasOwnProperty("unique") && col.unique) {
                         if (sinks[0].checkIfColValueExists(col.name, record[col.name])) {
                             discardRecord = true;
-                            logger.info("Discarding ref record due to unique constraint violation - " + JSON.stringify(record));
+                            logger.debug("Discarding ref record due to unique constraint violation - " + JSON.stringify(record));
                         }
                     }
-                    if (col.hasOwnProperty("anomaly") && this.getRandomInt(1, 101) <= col.anomaly.frequency) {
-                        record[col.name] = record[col.name] * col.anomaly.magnitude
-                    }
-                } else {
-                    record[col.name] = this.refRecords[col.function].get(this.getRandomInt(0, this.refRecords[col.function].length()));
-                }
+                } else 
+                    record[col.name] = this.assignRefColValue(col)
             }
             if (schema == "Master") {
                 if (!this.options.noeventtime)
@@ -52,6 +48,42 @@ class Generator {
         }
     }
 
+    assignFakerColValue(col) {
+        var colValue;
+        if (col.count && col.count > 1)
+            colValue =  [...Array(col.count).keys(0)].map(x =>
+                            faker[col.namespace][col.function].apply(null, this.createArgsArray(col.args))
+                        )
+        else {
+            colValue = faker[col.namespace][col.function].apply(null, this.createArgsArray(col.args))
+            if (col.hasOwnProperty("anomaly") && this.getRandomInt(1, 101) <= col.anomaly.frequency) {
+                colValue = typeof(colValue) == "number" ? colValue * col.anomaly.magnitude : colValue
+            }
+        }
+        return colValue
+    }   
+
+    assignRefColValue(col) {
+        var colValue;
+        if (col.count && col.count > 1)
+            return colValue =  [...Array(col.count).keys(0)].map(x => this.getRefColValue(col))
+        else
+            colValue = this.getRefColValue(col)
+        return colValue    
+    }
+
+    getRefColValue(col) {
+        var s = (global.schemaManager.getSchemas())[col.function]
+        if (s.count)
+            return  this.refRecords[col.function].get(this.getRandomInt(0, this.refRecords[col.function].length()))
+        else {
+            this.generateRefRecordsForSchema(col.function)
+            return this.refRecords[col.function].get(0) 
+        }
+            
+    }
+
+    
     convertToCSV(record) {
         let csvRec = ""
         Object.values(record).forEach(v => csvRec = csvRec + "," + v)
@@ -93,10 +125,11 @@ class Generator {
     generateRefRecordsForSchema(schema) {
         var recordSchemas = global.schemaManager.getSchemas();
         this.refRecords[schema] = new Sinks.memory();
-        for (let i = 0; i < recordSchemas[schema].count; i++) {
+        var count = recordSchemas[schema].count ? recordSchemas[schema].count : 1
+        for (let i = 0; i < count; i++) {
             this.genFakeRecord([this.refRecords[schema]], schema);
         }
-        logger.info(this.refRecords[schema].length() + " records generated for " + schema);
+        logger.debug(this.refRecords[schema].length() + " records generated for " + schema);
     }
 
     registerSchemaChangeListeners(e) {

@@ -23,16 +23,13 @@ global.schemaManager = SchemaManager.getInstance()
 // Generator is singleton, so can be set globally. This avoids having to include generator module everywhere
 // just to get this singleton instance 
 global.generator = DataGenerator.getInstance();
-
+// Create generators for sources 
+Source.getInstance();
+Distributor.loadSinks()
 
 createAPIMocker()
 createConfigManagerAPI()
 createSinkAPI()
-
-// Create generators for sources 
-const sources = Source.getInstance(options);
-Distributor.loadSinks()
-
 createSourceAPI()
 
 // Create data server for console sink

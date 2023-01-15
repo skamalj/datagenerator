@@ -33,6 +33,13 @@ class SourcePrivate {
             this.sources.write(o)
         }
     }
+    addSource(data) {
+        let o = {}
+        o.data = {...data};
+        o.status = "Stopped";
+        o.id = this.sources.length();
+        this.sources.write(o)
+    }
     startSource(i) {
         let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master", 
                                 this.getSource(i).data), this.interval);
@@ -118,11 +125,11 @@ class SourcePrivate {
 }
 
 class Source {
-    static getInstance(options = null) {
+    static getInstance() {
         if (Source.instance)
             return Source.instance
         else 
-            return Source.instance = new SourcePrivate(options)
+            return Source.instance = new SourcePrivate(global.options)
     }
 }
 

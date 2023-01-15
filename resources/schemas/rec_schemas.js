@@ -5,7 +5,7 @@ const REF_SCHEMA = {
     "patternProperties": {
         "^[a-zA-Z]*$": {
             "type": "object",
-            "required": ["count", "schema"],
+            "required": ["schema"],
             "additionalProperties": false,
             "properties": {
                 "count": { "type": "integer" },
