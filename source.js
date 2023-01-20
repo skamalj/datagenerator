@@ -16,13 +16,14 @@ class SourcePrivate {
         this.sourceIntervalIds = {}
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
-        this.startAll();
+        if(!(options.noStart)) this.startAll();
         if (recordSchemas["Source"] && recordSchemas["Source"].failure_simulation)
             setInterval(() => this.randomlyRemoveSources(), this.interval);
     }
     // This creates source objects (data, status and id) from source data records
     initialize() {
         if (this.sourceData.length() == 0) {
+            for (let i = 0; i < this.options.sources; i++)
             this.sourceData.write({});
         }
         for (let i = 0; i < this.sourceData.length(); i++) {

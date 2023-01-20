@@ -102,6 +102,9 @@ function createConfigManagerAPI() {
         }
         res.send(schemaManager.getSchemas())
     })
+    configRouter.post('/refresh/:schema', (req, res) => {
+        res.send(global.generator.generateRefRecordsForSchema(req.params.schema))
+    })
 }
 
 function createSourceAPI() {
