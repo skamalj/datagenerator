@@ -81,4 +81,48 @@ const SOURCE_SCHEMA = {
     }
 }
 
-module.exports = { SOURCE_SCHEMA, REF_SCHEMA }
+const MASTER_SCHEMA = {
+    "id": "/MasterRecord",
+    "type": "object",
+    "required": ["Master"],
+    "additionalProperties": false,
+    "Properties": {
+        "Master": {
+            "type": "object",
+            "required": ["schema"],
+            "additionalProperties": false,
+            "properties": {
+                "schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "namespace", "function"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": { "type": "string" },
+                            "namespace": { "type": "string" },
+                            "function": { "type": "string" },
+                            "args": {
+                                "type": "array",
+                                "items": { 
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            },
+                            "anomaly": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "magnitude": { "type": "number" },
+                                    "frequency": { "type": "integer" },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+module.exports = { SOURCE_SCHEMA, REF_SCHEMA, MASTER_SCHEMA }
