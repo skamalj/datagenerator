@@ -13,7 +13,7 @@ const { SchemaManager} = require('./schema_manager')
 
 // Load generator environment. 
 // Read here - https://github.com/motdotla/dotenv
-require('dotenv').config()
+//require('dotenv').config()
 
 logger.info(options)
 

@@ -1,4 +1,5 @@
 const express = require('express')
+const nocache = require("nocache");
 var bodyParser = require('body-parser')
 const { httpLogger } = require('./logger')
 const { SchemaManager } = require('./schema_manager')
@@ -8,7 +9,6 @@ const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const yaml = require('js-yaml');
 const {SINK_SCHEMA} = require('./openapi_sink_schema')
-const {eventEmitter} = require('./eventhandler')
 
 
 const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8'));
@@ -16,6 +16,7 @@ swaggerDocument.components = {}
 swaggerDocument.components.schemas = SINK_SCHEMA.schemas
 
 const app = express()
+app.use(nocache());
 app.use(httpLogger)
 var mockRouter = express.Router()
 var configRouter = express.Router()
@@ -40,7 +41,7 @@ app.use((err, req, res, next) => {
     })
 })
 app.listen(global.options.apiPort, () => {
-    console.log(`API Server listening on port 3000`)
+    console.log(`API Server listening on port ${global.options.apiPort}`)
 })
 
 function createAPIMocker() {

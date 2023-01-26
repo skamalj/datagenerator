@@ -1,4 +1,6 @@
 const { logger } = require('./logger')
+const http = require('node:http');
+const https = require('node:https');
 
 let Sinks = {}
 
@@ -34,7 +36,7 @@ Sinks.kinesis = class kinesis {
         this.#kinesis = new KinesisClient({ region: config.region });
     }
     write(rec) {
-        const {PutRecordCommand } = require("@aws-sdk/client-kinesis");
+        const { PutRecordCommand } = require("@aws-sdk/client-kinesis");
         try {
             let [partkey] = Object.keys(rec);
             var params = {
@@ -80,7 +82,8 @@ Sinks.eventshub = class EventsHub {
     }
 }
 // In memory sink for storing REF records
-Sinks.memory = class memory {D
+Sinks.memory = class memory {
+    D
     #mem;
     #removed_recs = []
     constructor() {
@@ -107,7 +110,7 @@ Sinks.memory = class memory {D
         return this.#mem.filter(rec => rec[colName] == colValue)
     }
     removeElementByValue(colName, colValue) {
-        let element =  this.#mem.filter(rec => rec[colName] == colValue)
+        let element = this.#mem.filter(rec => rec[colName] == colValue)
         this.#mem = this.#mem.filter(rec => rec[colName] != colValue)
         return element
     }
@@ -156,55 +159,55 @@ Sinks.filesink = class FileSink {
     write(rec) {
         var parsed_rec
         try {
-            JSON.parse(rec) 
-            parsed_rec = rec + "\n"    
+            JSON.parse(rec)
+            parsed_rec = rec + "\n"
         } catch (error) {
-            parsed_rec = JSON.stringify(rec) + "\n"    
+            parsed_rec = JSON.stringify(rec) + "\n"
         }
-        if ((this.#records_written < this.#max_records)  && (this.#files_written < this.#no_of_files)) {
+        if ((this.#records_written < this.#max_records) && (this.#files_written < this.#no_of_files)) {
             this.#records_written++
             this.#contents += parsed_rec;
         } else if (this.#files_written < this.#no_of_files) {
             this.#files_written++
             this.#records_written = 0
             this.createFile(this.#file, this.#contents)
-            this.#contents=''
+            this.#contents = ''
             this.#file = this.#basefilename + '_' + this.#files_written + '.json'
         } else {
             this.disable();
         }
     }
-    createFile(file, contents){
-        switch(this.#destination) {
+    createFile(file, contents) {
+        switch (this.#destination) {
             case 'S3':
-                this.pushToS3(file,contents)
+                this.pushToS3(file, contents)
                 break;
             default:
-                this.createLocalFile(file,contents)
+                this.createLocalFile(file, contents)
         }
     }
-    pushToS3(file,contents) {
+    pushToS3(file, contents) {
         const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
         var s3 = new S3Client();
         var params = {
-            Body: Buffer.from(contents,"utf-8"), 
-            Bucket: this.#config.s3BucketName, 
+            Body: Buffer.from(contents, "utf-8"),
+            Bucket: this.#config.s3BucketName,
             Key: file
-           };
-           s3.send(new PutObjectCommand(params), function(err, data) {
-             if (err) logger.error(err, err.stack); 
-             else     logger.info(`File ${file} pushed to S3`);        
-           });
+        };
+        s3.send(new PutObjectCommand(params), function (err, data) {
+            if (err) logger.error(err, err.stack);
+            else logger.info(`File ${file} pushed to S3`);
+        });
     }
     createLocalFile(file, contents) {
         const fs = require('fs');
-        var data = Buffer.from(contents,'utf-8')
-        fs.open(file,'a' , function(err, fd) {
+        var data = Buffer.from(contents, 'utf-8')
+        fs.open(file, 'a', function (err, fd) {
             if (err) {
                 logger.info(`Cannot open file ${file}`)
             } else {
-                fs.write(fd,data, 0, data.lenght, null, function(err, byteswritten) {
-                    if (err) { 
+                fs.write(fd, data, 0, data.lenght, null, function (err, byteswritten) {
+                    if (err) {
                         logger.error(`Cannot write to file ${file}: ${err}`)
                     } else {
                         logger.info(`File ${file} created`)
@@ -230,10 +233,10 @@ Sinks.kafka = class Kafka {
             reauthenticationThreshold: 20000,
             ssl: true,
             sasl: {
-                mechanism: 'plain', 
+                mechanism: 'plain',
                 username: config.saslUsername,
                 password: config.saslPassword
-             },
+            },
         });
 
         this.#producer = kafka.producer()
@@ -243,28 +246,64 @@ Sinks.kafka = class Kafka {
     init() {
         logger.info("Initializing kafka sink")
         this.#producer.connect()
-        .then(() => {
-            logger.info(`Kafka sink connected for topic ${this.#topic}`);
-        })
-        .catch((error) => {
-            logger.error(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
-        })
+            .then(() => {
+                logger.info(`Kafka sink connected for topic ${this.#topic}`);
+            })
+            .catch((error) => {
+                logger.error(`Kafka sink not connected for topic ${this.#topic}: ${error}`);
+            })
     }
     write(rec) {
         this.#producer.send({
             topic: this.#topic,
             messages: [
-                {value: JSON.stringify(rec) }
+                { value: JSON.stringify(rec) }
             ],
             acks: 0
         })
-        .then(() => {
-            logger.debug("Message " + rec + " published to kafka");
-        })
-        .catch((error) => {
-            logger.error(`Error sending record to kafka: ${error}`);
-        })
+            .then(() => {
+                logger.debug("Message " + rec + " published to kafka");
+            })
+            .catch((error) => {
+                logger.error(`Error sending record to kafka: ${error}`);
+            })
     }
+}
+
+Sinks.webhook = class webhook {
+    #url;
+    #options;
+    #caller;
+    constructor(config) {
+        this.#url = config.url
+        this.#caller = this.#url.split(":")[0] == "https" ? https : http
+        config.options ? this.#options = config.options : this.#options = {}
+        this.#options.headers["Content-Type"] = "application/json"
+        this.#options.method = "POST"
+    }
+    write(rec) {
+        var data = JSON.stringify(rec);
+        this.#options.headers['Content-Length'] = Buffer.byteLength(data)
+        const req = this.#caller.request(this.#url, this.#options, (res) => {
+            var body = '';
+            logger.debug(`STATUS: ${res.statusCode}  HEADERS: ${JSON.stringify(res.headers)}`);
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => {
+                body = body + chunk
+            });
+            res.on('end', () => {
+                logger.debug(`BODY: ${body}`);
+            });
+        });
+
+        req.on('error', (e) => {
+            logger.error(`problem with request: ${e.message}`);
+        });
+
+        req.write(data);
+        req.end();
+    }
+
 }
 
 module.exports = { Sinks }

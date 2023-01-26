@@ -1,0 +1,9 @@
+records:
+  - type: Master
+    schema:
+      - name: id
+        namespace: datatype
+        function: number
+      - name: name
+        namespace: name
+        function: fullName

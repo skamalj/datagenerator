@@ -1,7 +1,7 @@
 const { Sinks } = require('./sinks.js');
 const { Distributor } = require('./distributor')
 const { logger } = require('./logger')
-const { NotFound} = require('./error_lib')
+const { NotFound } = require('./error_lib')
 
 // This class generates data for a given source. It uses global Generator instance 
 // to create data records.
@@ -16,33 +16,31 @@ class SourcePrivate {
         this.sourceIntervalIds = {}
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
-        this.startAll();
+        if (this.options.start) this.startAll();
         if (recordSchemas["Source"] && recordSchemas["Source"].failure_simulation)
             setInterval(() => this.randomlyRemoveSources(), this.interval);
     }
     // This creates source objects (data, status and id) from source data records
     initialize() {
         if (this.sourceData.length() == 0) {
-            this.sourceData.write({});
+            for (let i = 0; i < this.options.dummySources; i++) {
+                this.sourceData.write({});
+            }
         }
         for (let i = 0; i < this.sourceData.length(); i++) {
-            let o = {}
-            o.data = {...this.sourceData.get(i)};            
-            o.status = "Stopped";
-            o.id = i;
-            this.sources.write(o)
+            this.addSource(this.sourceData.get(i))
         }
     }
     addSource(data) {
         let o = {}
-        o.data = {...data};
+        o.data = { ...data };
         o.status = "Stopped";
         o.id = this.sources.length();
         this.sources.write(o)
     }
     startSource(i) {
-        let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master", 
-                                this.getSource(i).data), this.interval);
+        let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master",
+            this.getSource(i).data), this.interval);
         this.sourceIntervalIds.i = intervalId;
         this.getSource(i).status = "Running";
         if (this.options.timeout)
@@ -69,7 +67,7 @@ class SourcePrivate {
             this.startSource(i);
         }
     }
-    
+
     resetInterval(interval) {
         this.interval = interval;
         this.reStartAll();
@@ -79,8 +77,8 @@ class SourcePrivate {
         clearInterval(this.sourceIntervalIds.i.intervalId);
         this.getSource(i).status = "Stopped";
         logger.info("Stopped source: " + JSON.stringify(this.getSource(i).data) + " at index " + i);
-        var source =  this.getSource(i)
-        return  source
+        var source = this.getSource(i)
+        return source
     }
     // Get random Integer between min and max. This is used to randomly stop sources, if enabled
     getRandomInt(min, max) {
@@ -92,17 +90,17 @@ class SourcePrivate {
 
     getSource(i) {
         var source = this.sources.get(i)
-        if (source) 
+        if (source)
             return source
-        else 
+        else
             throw new NotFound(`Source ${i} not found`)
     }
-    
+
     getSources(state = null) {
         let r = this
-                .sources
-                .get()
-                .filter(source => !(state) || source.status == state)
+            .sources
+            .get()
+            .filter(source => !(state) || source.status == state)
         return r
     }
 
@@ -128,7 +126,7 @@ class Source {
     static getInstance() {
         if (Source.instance)
             return Source.instance
-        else 
+        else
             return Source.instance = new SourcePrivate(global.options)
     }
 }

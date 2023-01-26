@@ -36,7 +36,7 @@ class Generator {
                     record[col.name] = this.assignRefColValue(col)
             }
             if (schema == "Master") {
-                if (!this.options.noeventtime)
+                if (this.options.eventtime)
                     record["eventtime"] = Date.now();
                 if (source && Object.keys(source).length > 0)
                     record["source"] = source;

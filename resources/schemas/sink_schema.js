@@ -16,6 +16,7 @@ const SINK_SCHEMA = {
                 { "$ref": "#/$defs/kinesis" },
                 { "$ref": "#/$defs/eventshub" },
                 { "$ref": "#/$defs/file" },
+                { "$ref": "#/$defs/webhook" },
             ]
         }
     },
@@ -60,6 +61,16 @@ const SINK_SCHEMA = {
                 "topicName": { "type": "string" },
                 "saslUsername": { "type": "string" },
                 "saslPassword": { "type": "string" }
+            }
+        },
+        "webhook": {
+            "type": "object",
+            "required": ["type","url"],
+            "additionalProperties": false,
+            "properties": {
+                "type": { "const": "webhook" },
+                "url": { "type": "string" },
+                "options": { "type": "object" },
             }
         },
         "file": {
