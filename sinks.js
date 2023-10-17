@@ -240,7 +240,7 @@ Sinks.kafka = class Kafka {
         });
 
         this.#producer = kafka.producer()
-        this.#topic = config.topic
+        this.#topic = config.topicName
         this.init()
     }
     init() {
@@ -305,5 +305,43 @@ Sinks.webhook = class webhook {
     }
 
 }
+// Create JDBC sink
+Sinks.jdbc = class jdbc {
+    #conn;
+    #stmt;
+    #config;
+    constructor(config) {
+        this.#config = config
+        this.init()
+    }
+    init() {
+        logger.info("Initializing jdbc sink")
+        const { Client } = require('pg')
+        this.#conn = new Client({
+            user: this.#config.user,
+            host: this.#config.host,
+            database: this.#config.database,
+            password: this.#config.password,
+            port: this.#config.port,
+        })
+        this.#conn.connect()
+            .then(() => {
+                logger.info(`JDBC sink connected for ${this.#config.database}`);
+            })
+            .catch((error) => {
+                logger.error(`JDBC sink not connected for ${this.#config.database}: ${error}`);
+            })
+    }
+    write(rec) {
+        this.#conn.query(this.#config.query, [rec])
+            .then(res => {
+                logger.debug("Message " + rec + " published to jdbc");
+            })
+            .catch(e => {
+                logger.error(`Error sending record to jdbc: ${e}`);
+            })
+    }
+}
+
 
 module.exports = { Sinks }

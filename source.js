@@ -74,7 +74,7 @@ class SourcePrivate {
     }
 
     stopSource(i) {
-        clearInterval(this.sourceIntervalIds.i.intervalId);
+        clearInterval(this.sourceIntervalIds.i);
         this.getSource(i).status = "Stopped";
         logger.info("Stopped source: " + JSON.stringify(this.getSource(i).data) + " at index " + i);
         var source = this.getSource(i)

@@ -17,6 +17,7 @@ const SINK_SCHEMA = {
                 { "$ref": "#/$defs/eventshub" },
                 { "$ref": "#/$defs/file" },
                 { "$ref": "#/$defs/webhook" },
+                { "$ref": "#/$defs/kafka" },
             ]
         }
     },
