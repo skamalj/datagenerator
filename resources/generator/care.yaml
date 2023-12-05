@@ -1,0 +1,60 @@
+Master:
+  schema:
+    - name: jrn_dt
+      namespace: date
+      function: past
+      args: [5]
+    - name: cltdod
+      namespace: datatype
+      function: number
+      args:
+        - min: 10000000
+          max: 90000000
+    - name: roleflag18
+      namespace: helpers
+      function: arrayElement
+      args: [['Y','','','','','','']]
+    - name: salutl
+      namespace: helpers
+      function: arrayElement
+      args: [['MR','MS','MASTER','DR','MD','MX']]
+    - name: clntpfx
+      namespace: helpers
+      function: arrayElement
+      args: [['CN']]
+    - name: roleflag02
+      namespace: helpers
+      function: arrayElement
+      args: [['Y','N']]
+    - name: action
+      namespace: helpers
+      function: arrayElement
+      args: [['U','I','','','','','','','','','','']]
+    - name: clntnum
+      namespace: datatype
+      function: number
+      args:
+        - min: 10000000
+          max: 90000000
+    - name: cltpcode
+      namespace: datatype
+      function: number
+      args:
+        - min: 100000
+          max: 900000
+    - name: surname
+      namespace: name
+      function: lastName
+    - name: firstname
+      namespace: name
+      function: firstName
+    - name: natlty
+      namespace: helpers
+      function: arrayElement
+      args: [['IND','','','','','','','','','','']]
+    - name: building
+      namespace: address
+      function: buildingNumber
+    - name: city
+      namespace: address
+      function: city
