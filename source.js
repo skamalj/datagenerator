@@ -1,51 +1,64 @@
-// import generator
-const { Generator, RefDataGenerator } = require('./generator.js');
 const { Sinks } = require('./sinks.js');
+const { Distributor } = require('./distributor')
+const { logger } = require('./logger')
+const { NotFound } = require('./error_lib')
 
-// This class creates a generator for a specific source
-// If no sources are provided, dummy single source is created
-// If source failure probability is configured, then a process is started to simulate source failure
-// which disables randomly selected source.
+// This class generates data for a given source. It uses global Generator instance 
+// to create data records.
 
-class Source {
-    constructor(options, enabledSinks) {
+class SourcePrivate {
+    constructor(options) {
         this.options = options;
-        this.enabledSinks = enabledSinks;
-        this.refDataGenerator = RefDataGenerator.getInstance();
-        this.sources = this.refDataGenerator.refRecords["Source"] ? this.refDataGenerator.refRecords["Source"] : new Sinks.memory();
+        var refRecords = global.generator.getRefRecords();
+        var recordSchemas = global.schemaManager.getSchemas();
+        this.sourceData = refRecords["Source"] ? refRecords["Source"] : new Sinks.memory();
+        this.sources = new Sinks.memory();
+        this.sourceIntervalIds = {}
         this.interval = parseInt(this.options.interval) || process.env.INTERVAL || 1000;
         this.initialize();
-        this.startAll();
-        if (this.refDataGenerator.recordSchemas["Source"] && this.refDataGenerator.recordSchemas["Source"].failure_simulation)
+        if (this.options.start) this.startAll();
+        if (recordSchemas["Source"] && recordSchemas["Source"].failure_simulation)
             setInterval(() => this.randomlyRemoveSources(), this.interval);
     }
-    // Move source attributes to 'data' field, so that we can add other attributes to source 
-    // like status and processID
+    // This creates source objects (data, status and id) from source data records
     initialize() {
-        if (this.sources.length() == 0) {
-            this.sources.write({});
+        if (this.sourceData.length() == 0) {
+            for (let i = 0; i < this.options.dummySources; i++) {
+                this.sourceData.write({});
+            }
         }
-        for (let i = 0; i < this.sources.length(); i++) {
-            let o = {}
-            Object.assign(o, this.sources.get(i));
-            this.sources.get(i).data = o;
-            this.sources.get(i).status = "Stopped";
+        for (let i = 0; i < this.sourceData.length(); i++) {
+            this.addSource(this.sourceData.get(i))
         }
     }
+    addSource(data) {
+        let o = {}
+        o.data = { ...data };
+        o.status = "Stopped";
+        o.id = this.sources.length();
+        this.sources.write(o)
+    }
     startSource(i) {
-        let generator = new Generator(this.options, this.refDataGenerator.refRecords, this.refDataGenerator.recordSchemas,
-            this.sources.get(i).data);
-        let intervalId = setInterval(() => generator.genFakeRecord(this.enabledSinks, "Master"), this.interval);
-        this.sources.get(i).intervalId = intervalId;
-        this.sources.get(i).status = "Running";
+        let intervalId = setInterval(() => global.generator.genFakeRecord([Distributor], "Master",
+            this.getSource(i).data), this.interval);
+        this.sourceIntervalIds.i = intervalId;
+        this.getSource(i).status = "Running";
         if (this.options.timeout)
             setTimeout(() => {
                 clearInterval(intervalId)
             }, parseInt(this.options.timeout) * 60 * 1000);
+        var source = this.getSource(i)
+        return source
     }
+
     startAll() {
         for (let i = 0; i < this.sources.length(); i++) {
             this.startSource(i);
+        }
+    }
+    stopAll() {
+        for (let i = 0; i < this.sources.length(); i++) {
+            this.stopSource(i);
         }
     }
     reStartAll() {
@@ -54,56 +67,68 @@ class Source {
             this.startSource(i);
         }
     }
-    // Reset interval and restart all sources
+
     resetInterval(interval) {
         this.interval = interval;
         this.reStartAll();
     }
-    // This function can be used from management server to stop a source
+
     stopSource(i) {
-        clearInterval(this.sources.get(i).intervalId);
-        this.sources.get(i).status = "Stopped";
-        console.log("Stopped source: " + JSON.stringify(this.sources.get(i).data) + " at index " + i);
+        clearInterval(this.sourceIntervalIds.i);
+        this.getSource(i).status = "Stopped";
+        logger.info("Stopped source: " + JSON.stringify(this.getSource(i).data) + " at index " + i);
+        var source = this.getSource(i)
+        return source
     }
-    // Get random Integer between min and max
+    // Get random Integer between min and max. This is used to randomly stop sources, if enabled
     getRandomInt(min, max) {
         min = Math.ceil(min);
         max = Math.floor(max);
         //The maximum is exclusive and the minimum is inclusive
         return Math.floor(Math.random() * (max - min)) + min;
     }
-    // Get Running sources 
-    // Can be used from management server to get running sources count
-    getRunningSources() {
-        let runningSources = 0;
-        for (let i = 0; i < this.sources.length(); i++) {
-            if (this.sources.get(i).status == "Running") {
-                runningSources++;
-            }
-        }
-        return (runningSources.toString() + "\n");
+
+    getSource(i) {
+        var source = this.sources.get(i)
+        if (source)
+            return source
+        else
+            throw new NotFound(`Source ${i} not found`)
     }
-    // List enabled sinks
-    listEnabledSinks() {
-        let enabledSinks = [];
-        for (let i = 0; i < this.enabledSinks.length; i++) {
-            enabledSinks.push(this.enabledSinks[i].constructor.name);
-        }
-        return enabledSinks.toString() + "\n";
+
+    getSources(state = null) {
+        let r = this
+            .sources
+            .get()
+            .filter(source => !(state) || source.status == state)
+        return r
     }
+
     // Simulate device/source failure
     randomlyRemoveSources() {
-        let removalProbability = this.refDataGenerator.recordSchemas["Source"].failure_simulation.probability ?
-            this.refDataGenerator.recordSchemas["Source"].failure_simulation.probability * 100.0 : 0;
-        let min_source_recs = this.refDataGenerator.recordSchemas["Source"].failure_simulation.min_source_recs ?
-            this.refDataGenerator.recordSchemas["Source"].failure_simulation.min_source_recs : this.sources.length();
+        var recordSchemas = global.schemaManager.getSchemas();
+        let removalProbability = recordSchemas["Source"].failure_simulation.probability ?
+            recordSchemas["Source"].failure_simulation.probability * 100.0 : 0;
+        let min_source_recs = recordSchemas["Source"].failure_simulation.min_source_recs ?
+            recordSchemas["Source"].failure_simulation.min_source_recs : this.sources.length();
         for (let i = 0; i < this.sources.length(); i++) {
+            var s = this.sources.get(i).status
             if (this.getRandomInt(1, 10001) <= removalProbability
-                && this.getRunningSources() > min_source_recs
-                && this.sources.get(i).status == "Running") {
+                && this.getSources().length > min_source_recs
+                && this.getSource(i).status == "Running") {
                 this.stopSource(i);
             }
         }
     }
 }
+
+class Source {
+    static getInstance() {
+        if (Source.instance)
+            return Source.instance
+        else
+            return Source.instance = new SourcePrivate(global.options)
+    }
+}
+
 module.exports = { Source };
