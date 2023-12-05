@@ -24,10 +24,12 @@
             "name": "Attach by Process ID",
             "processId": "${command:PickProcess}",
             "request": "attach",
+            "type": "node",
             "skipFiles": [
+                "${workspaceFolder}/node_modules/**/*.js",
+                "${workspaceFolder}/lib/**/*.js",
                 "<node_internals>/**"
-            ],
-            "type": "node"
+              ]
         },
     ]
 }

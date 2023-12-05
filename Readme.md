@@ -174,7 +174,7 @@ records:
 * All Ref records are available as API Mocks at endpoint `/mock/<recordname>`
   * GET /
   * GET /{id}
-    * id is matched against whatver is name if first filed in record schema
+    * id is matched against whatver is name of first field in record schema
   * DELETE /{id}
   * POST /
     * Record JSON as request body 
