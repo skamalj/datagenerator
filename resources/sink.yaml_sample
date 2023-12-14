@@ -1,0 +1,17 @@
+- name: s3sink
+  config:
+    type: FileSink
+    baseName: newgen/basename
+    batchSize: 50000
+    numOfFiles: 100
+    destination: S3
+    s3BucketName: bucket
+- name: AWSGGIot
+  config:
+    type: AWSIoT
+    key_filepath: yyyyy.pem.key
+    cert_filepath: yyyycertificate.pem.crt
+    host_name: "xxxxxxx"
+    client_id: GGClient2
+    topic: clients/GGClient1/hello/world
+    

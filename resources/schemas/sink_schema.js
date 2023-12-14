@@ -18,6 +18,7 @@ const SINK_SCHEMA = {
                 { "$ref": "#/$defs/file" },
                 { "$ref": "#/$defs/webhook" },
                 { "$ref": "#/$defs/kafka" },
+                { "$ref": "#/$defs/awsiot" },
             ]
         }
     },
@@ -74,6 +75,20 @@ const SINK_SCHEMA = {
                 "options": { "type": "object" },
             }
         },
+        "awsiot": {
+            "type": "object",
+            "required": ["type", "host_name", "topic","client_id","cert_filepath","key_filepath"],
+            "additionalProperties": false,
+            "properties": {
+                "type": { "const": "AWSIoT" },
+                "host_name": { "type": "string" },
+                "topic": { "type": "string" },
+                "client_id": { "type": "string" },
+                "cert_filepath": { "type": "string" },
+                "key_filepath": { "type": "string" },
+                "ca_filepath": { "type": "string" }
+            }
+        },
         "file": {
             "type": "object",
             "required": ["type", "baseName"],
@@ -97,15 +112,19 @@ const SINK_SCHEMA = {
     }
 }
 
-// const Validator = require('jsonschema').Validator;
-// const v = new Validator();
-// var instance = {
-//     "name": "sinkOne",
-//     "config": {
-//         "type": "File",
-//         "destination": "S3"
-//     }
-// };
-// console.log(v.validate(instance, SINK_SCHEMA, {nestedErrors: true}).toString());
+//const Validator = require('jsonschema').Validator;
+//const v = new Validator();
+//var instance = {
+//    "name": "sinkOne",
+//    "config": {
+//        "type": "AWSIoT",
+//        "key_filepath": "/home/kamal/dev/greengrass/node-pub/4e0e8ad6f2f7fa1678c6dec53050aa90bea63a4f05e18b16e14b988b961d46bd-private.pem.key",
+//        "cert_filepath": "/home/kamal/dev/greengrass/node-pub/4e0e8ad6f2f7fa1678c6dec53050aa90bea63a4f05e18b16e14b988b961d46bd-certificate.pem.crt",
+//        "host_name": "13.233.245.141",
+//        "client_id": "GGClient2",
+//        "topic": "test-gg",
+//    }
+//};
+//console.log(v.validate(instance, SINK_SCHEMA, {nestedErrors: true}).toString());
 
 module.exports = { SINK_SCHEMA }

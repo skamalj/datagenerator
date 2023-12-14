@@ -191,6 +191,8 @@ Below command generates one record each second for 1 min and writes them to port
 
 `nc localhost 4000` on separate terminal will show the generated data
 
+Swagger endpoint is at `http://localhost:3000/api-docs/#/`
+
 See help
 ```
 node index.js -h

@@ -305,40 +305,45 @@ Sinks.webhook = class webhook {
     }
 
 }
-// Create JDBC sink
-Sinks.jdbc = class jdbc {
+// Create AWSIoT sink
+Sinks.awsiot = class AWSIoT {
     #conn;
-    #stmt;
     #config;
     constructor(config) {
         this.#config = config
         this.init()
     }
     init() {
-        logger.info("Initializing jdbc sink")
-        const { Client } = require('pg')
-        this.#conn = new Client({
-            user: this.#config.user,
-            host: this.#config.host,
-            database: this.#config.database,
-            password: this.#config.password,
-            port: this.#config.port,
-        })
+        logger.info("Initializing IOT sink")
+        const { io,iot,mqtt } = require('aws-iot-device-sdk-v2')
+        // Create TLS Options object.  Download Core CA file from Core device /greengrass/v2/work/aws.greengrass.clientdevices.Auth/ca.pem
+        var tls_options = io.TlsContextOptions.create_client_with_mtls_from_path(this.#config.cert_filepath,this.#config.key_filepath)
+        var config = iot.AwsIotMqttConnectionConfigBuilder.new_default_builder().with_clean_session(true).build()
+        if(this.#config.ca_filepath) {
+            tls_options.ca_filepath = this.#config.ca_filepath
+        } else {
+            tls_options.verify_peer = false
+        }
+
+        let tls_ctx = new io.ClientTlsContext(tls_options)
+        config.tls_ctx = tls_ctx
+        config.client_id = this.#config.client_id
+        config.host_name = this.#config.host_name
+        let client = new mqtt.MqttClient()
+        this.#conn = client.new_connection(config)
         this.#conn.connect()
-            .then(() => {
-                logger.info(`JDBC sink connected for ${this.#config.database}`);
-            })
-            .catch((error) => {
-                logger.error(`JDBC sink not connected for ${this.#config.database}: ${error}`);
-            })
+        .then(() => {
+            logger.info(`IOT sink connected for ${this.#config.host_name}`);})
+        .catch((error) => {
+            logger.error(`IOT sink not connected for ${this.#config.host_name}: ${error}`);})
     }
     write(rec) {
-        this.#conn.query(this.#config.query, [rec])
+        this.#conn.publish(this.#config.topic,rec, 1)
             .then(res => {
-                logger.debug("Message " + rec + " published to jdbc");
+                logger.debug("Message " + rec + " published to IOT Core");
             })
             .catch(e => {
-                logger.error(`Error sending record to jdbc: ${e}`);
+                logger.error(`Error sending record to IOT Core: ${e}`);
             })
     }
 }
